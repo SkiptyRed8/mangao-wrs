@@ -11,6 +11,7 @@ import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
 import '../station/send_out.dart';
 import 'order_actions.dart';
+import 'unpaid_accounts.dart';
 
 /// Admin Orders 2-4: Order Details by stage. Order Info (tap the phone number to call, the address for
 /// the map pin), Estimated Delivery Time (set automatically), Rider (Change rider while Processing),
@@ -228,6 +229,12 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
                     o.paymentStatus == 'Unpaid' ? 'Unpaid: owes ${peso(o.total)}' : (o.payment == 'Paid at station' ? 'Paid at station' : 'Paid'),
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
+                  if (o.paymentStatus == 'Unpaid')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: LinkText('All unpaid orders of this customer',
+                          () => go(context, UnpaidCustomer(customerKey: o.customerKey))),
+                    ),
                 ],
                 action: o.paymentStatus == 'Unpaid'
                     ? SmallBtn('Mark paid', () async {

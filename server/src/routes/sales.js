@@ -3,6 +3,8 @@ const { Router } = require('express');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { bad } = require('../utils/errors');
 const { now, phParts } = require('../services/time');
+const { unpaidAccounts, unpaidOrders, who } = require('../services/customers');
+const { notFound } = require('../utils/errors');
 const { dayRange, daySummary, dayOrders, addDays, mondayOf, weekSummary, change } = require('../services/reports');
 
 const router = Router();
@@ -47,6 +49,23 @@ router.get('/weekly', async (req, res) => {
       orders: change(week.totals.orders, last.totals.orders),
     },
   });
+});
+
+// GET /api/sales/unpaid?q= -> { total, count, customers: [{ key, name, phone, orders, owed, oldest }] }  (Admin Sales 3)
+router.get('/unpaid', async (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 60);
+  const customers = await unpaidAccounts(q);
+  const all = q ? await unpaidAccounts('') : customers;
+  res.json({ total: all.reduce((a, c) => a + c.owed, 0), count: all.length, customers });
+});
+
+// GET /api/sales/unpaid/:key -> { customer, owed, orders }  One customer's unpaid orders; Paid uses
+// POST /api/admin/orders/:id/paid.
+router.get('/unpaid/:key', async (req, res) => {
+  const customer = await who(String(req.params.key));
+  if (!customer) throw notFound('CUSTOMER_NOT_FOUND', 'Customer not found', 'Go back to Unpaid Accounts.');
+  const orders = await unpaidOrders(customer.key);
+  res.json({ customer, owed: orders.reduce((a, o) => a + o.total, 0), orders });
 });
 
 module.exports = router;

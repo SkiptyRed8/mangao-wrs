@@ -7,6 +7,7 @@ class Order {
   final int quantity;
   final double unitPrice;
   final double total;
+  final int? customerId;
   final String name;
   final String phone;
   final String address;
@@ -37,6 +38,7 @@ class Order {
     required this.quantity,
     required this.unitPrice,
     required this.total,
+    this.customerId,
     required this.name,
     required this.phone,
     required this.address,
@@ -71,6 +73,7 @@ class Order {
         quantity: (j['quantity'] as num).toInt(),
         unitPrice: _d(j['unitPrice']) ?? 0,
         total: _d(j['total']) ?? 0,
+        customerId: (j['customerId'] as num?)?.toInt(),
         name: (j['name'] ?? '') as String,
         phone: (j['phone'] ?? '') as String,
         address: (j['address'] ?? '') as String,
@@ -99,6 +102,9 @@ class Order {
 
   /// Rider as the owner sees it: "Juan" or "Owner".
   String get riderShort => riderRole == 'Owner' ? 'Owner' : (riderName ?? '').split(' ').first;
+
+  /// Key of the customer for Unpaid Accounts and the Customer Profile (account, phone, or name).
+  String get customerKey => customerId != null ? 'u$customerId' : (phone.isNotEmpty ? 'p$phone' : 'n$name');
 
   bool get active => status == 'New' || status == 'Processing' || status == 'Out for Delivery';
 }

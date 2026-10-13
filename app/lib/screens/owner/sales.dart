@@ -7,10 +7,12 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../shell.dart';
 import 'admin_order_details.dart';
+import 'unpaid_accounts.dart';
 import 'weekly_sales.dart';
 
 /// Admin Sales 1: Daily Sales Report. Money earned, Unpaid, Gallons processed, Packages sold,
-/// Delivery vs walk-in, Rider paid, and the orders of the day. The Weekly switch opens Admin Sales 2.
+/// Delivery vs walk-in, Rider paid, and the orders of the day. The Weekly switch opens Admin Sales 2;
+/// the Unpaid tile opens Admin Sales 3.
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
 
@@ -163,7 +165,7 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
             const Gap(8),
             Row(children: [
-              Expanded(child: _tile('Unpaid', _money(s['unpaid'] as num), onTap: () => toast(context, 'Unpaid Accounts comes in step 38'))),
+              Expanded(child: _tile('Unpaid', _money(s['unpaid'] as num), onTap: () => go(context, const UnpaidAccounts()))),
               const Gap(8),
               Expanded(child: _tile('Gallons processed', '${s['gallons']}')),
             ]),

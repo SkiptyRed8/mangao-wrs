@@ -170,3 +170,50 @@ describe('Weekly Sales Report (step 37)', () => {
     }
   });
 });
+
+describe('Unpaid Accounts (step 38)', () => {
+  test('unpaid orders grouped per customer (account + same phone), search, detail, and Paid lowers the total', async () => {
+    const { query: q } = require('../src/db');
+    const ana1 = await one("SELECT user_id FROM users WHERE phone_number = '09172001111'");
+    const add = (cust, name, phone, total, src = 'Logged') =>
+      q(
+        `INSERT INTO orders (order_source, order_type, customer_id, customer_name, contact_phone, quantity, unit_price, total_amount, status, payment_method, payment_status, delivered_at)
+         VALUES (?,'Refill',?,?,?,1,35,?,?,?, 'Unpaid', NOW())`,
+        [src, cust, name, phone, total, src === 'Walk-in' ? 'Recorded' : 'Delivered', src === 'Walk-in' ? 'Walk-in' : 'COD']
+      );
+    await add(ana1.user_id, 'Ana Lim', '09172001111', 70, 'App');
+    await add(null, 'Ana', '09172001111', 35); // logged by phone: same account
+    await add(null, 'Pedro Cruz', '09185550000', 105);
+    await add(null, 'Aling Nena', '', 30, 'Walk-in');
+
+    const list = await as(owner, api().get('/api/sales/unpaid'));
+    assert.equal(list.status, 200);
+    const anaRow = list.body.customers.find((c) => c.key === `u${ana1.user_id}`);
+    assert.equal(anaRow.orders, 2);
+    assert.equal(anaRow.owed, 105);
+    assert.equal(anaRow.name, 'Ana Lim');
+    assert.ok(list.body.customers.find((c) => c.key === 'p09185550000'));
+    assert.ok(list.body.customers.find((c) => c.name === 'Aling Nena'));
+    assert.ok(list.body.total >= 240);
+
+    const search = await as(owner, api().get('/api/sales/unpaid?q=pedro'));
+    assert.equal(search.body.customers.length, 1);
+    assert.equal(search.body.customers[0].phone, '09185550000');
+    const byPhone = await as(owner, api().get('/api/sales/unpaid?q=0918 555'));
+    assert.equal(byPhone.body.customers[0].name, 'Pedro Cruz');
+
+    // A phone key of an account opens the account.
+    const det = await as(owner, api().get('/api/sales/unpaid/p09172001111'));
+    assert.equal(det.body.customer.key, `u${ana1.user_id}`);
+    assert.equal(det.body.orders.length, 2);
+    assert.equal(det.body.owed, 105);
+
+    await as(owner, api().post(`/api/admin/orders/${det.body.orders[0].id}/paid`));
+    const after = await as(owner, api().get(`/api/sales/unpaid/u${ana1.user_id}`));
+    assert.equal(after.body.orders.length, 1);
+    assert.equal(after.body.owed, 35);
+
+    assert.equal((await as(owner, api().get('/api/sales/unpaid/pnobody'))).status, 404);
+    assert.equal((await as(staff, api().get('/api/sales/unpaid'))).status, 403);
+  });
+});

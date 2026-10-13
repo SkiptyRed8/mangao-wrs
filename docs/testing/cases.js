@@ -462,4 +462,23 @@ module.exports = [
       ['Log in as Staff.', 'No Sales tab (owner only).'],
     ],
   },
+  {
+    n: 38,
+    title: 'Unpaid Accounts',
+    screens: 'Admin Sales 3',
+    as: 'Owner',
+    before: 'Have 2 or 3 orders recorded Delivered (Unpaid): one app order from Ana Lim, one order logged by phone with Ana\'s number (0917 200 1111), and one walk-in saved as Unpaid.',
+    cases: [
+      ['Sales > Daily, tap the Unpaid tile.', 'Unpaid Accounts opens: blue box "Total owed" with the amount and the number of customers.'],
+      ['Look at the list.', 'One row per customer with name, phone, "2 unpaid orders" and the amount; most owed first. Ana\'s app order and the order logged with her phone are in ONE row.'],
+      ['Type "ana" in the search box.', 'Only Ana Lim shows. Type part of a phone number (e.g. 0917 200): the matching customer shows.'],
+      ['Type a name that does not exist.', '"No customer found". Tap the X to clear: the full list comes back.'],
+      ['Tap Ana Lim.', 'Unpaid Orders: name, phone, "Has an account", Total owed, Call button, and each unpaid order (#, date, gallons, amount) with a Paid button.'],
+      ['Tap Call.', 'The phone dialer opens with Ana\'s number (in Chrome: a tel: link prompt).'],
+      ['Tap Paid on one order, then Confirm.', 'Message "Marked paid. Total owed updated."; the order leaves the list and Total owed goes down.'],
+      ['Tap an order row (not the Paid button).', 'Admin Order Details opens; the Payment box shows "Unpaid: owes P..." with Mark paid.'],
+      ['In that Payment box, tap "All unpaid orders of this customer".', 'Goes to the same customer\'s Unpaid Orders page.'],
+      ['Pay the last order of a customer, go back.', 'The customer is gone from Unpaid Accounts; the Daily report Money earned goes up by that amount today.'],
+    ],
+  },
 ];
