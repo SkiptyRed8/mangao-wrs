@@ -10,6 +10,7 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
 import '../station/send_out.dart';
+import '../common/damage.dart';
 import '../common/loans.dart';
 import 'order_actions.dart';
 import 'unpaid_accounts.dart';
@@ -162,7 +163,7 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
               color: Colors.white,
               onSelected: (v) async {
                 var changed = false;
-                if (v == 'damaged') comingInStep(context, 41, 'Report damaged gallon');
+                if (v == 'damaged') changed = await reportDamaged(context, o);
                 if (v == 'rider') changed = await changeRider(context, o);
                 if (v == 'cancel') changed = await cancelOrder(context, o);
                 if (changed) await reload();
@@ -243,6 +244,7 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
                       })
                     : null,
               ),
+            DamageBox(o.id, version: d),
             if (!['New', 'Declined', 'Cancelled'].contains(o.status)) OrderLoansBox(o),
             const Section('Status Timeline'),
             TimelineList(steps),

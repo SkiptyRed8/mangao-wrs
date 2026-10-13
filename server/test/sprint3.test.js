@@ -313,3 +313,42 @@ describe('Borrowed gallons (step 40)', () => {
     assert.ok(steps.includes('Gallon lent') && steps.includes('Gallon returned'));
   });
 });
+
+describe('Damaged gallon report (step 41)', () => {
+  const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  test('rider sends photo and note; new gallon -1, timeline, owner alerted, photo served', async () => {
+    const juan = await one("SELECT user_id FROM users WHERE phone_number = '09170000003'");
+    const o = await one('SELECT order_id, customer_name FROM orders WHERE rider_id = ? ORDER BY order_id LIMIT 1', [juan.user_id]);
+    const other = await one('SELECT order_id FROM orders WHERE rider_id IS NULL OR rider_id <> ? ORDER BY order_id LIMIT 1', [juan.user_id]);
+    const stock = async () => (await one("SELECT quantity_on_hand AS n FROM inventory_items WHERE item_name = 'New Gallon'")).n;
+    const s0 = await stock();
+
+    assert.equal((await as(rider, api().post('/api/damage')).send({ orderId: o.order_id, note: 'Cracked' })).body.error.title, 'Photo missing');
+    assert.equal((await as(rider, api().post('/api/damage')).send({ orderId: o.order_id, photo: 'aGVsbG8=', note: 'x' })).body.error.title, 'Photo not valid');
+    assert.equal((await as(rider, api().post('/api/damage')).send({ orderId: o.order_id, photo: PNG })).body.error.title, 'Note missing');
+    assert.equal((await as(rider, api().post('/api/damage')).send({ orderId: other.order_id, photo: PNG, note: 'x' })).status, 403);
+
+    const r = await as(rider, api().post('/api/damage')).send({ orderId: o.order_id, photo: PNG, note: 'Cracked at the handle' });
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal(r.body.message, 'Sent to the owner. A new gallon replaces it.');
+    assert.equal(r.body.report.by, 'Juan Dela Cruz');
+    assert.equal(await stock(), s0 - 1);
+
+    const img = await api().get(r.body.report.photo);
+    assert.equal(img.status, 200);
+    assert.match(img.headers['content-type'], /image\/png/);
+
+    const moves = await as(owner, api().get('/api/inventory/movements?item=gallons'));
+    assert.equal(moves.body.movements[0].label, 'Damaged customer gallon replaced');
+    const tl = await as(owner, api().get(`/api/admin/orders/${o.order_id}`));
+    assert.ok(tl.body.timeline.some((t) => t.status === 'Damaged gallon' && t.note.startsWith('Cracked at the handle')));
+    const n = await as(owner, api().get('/api/notifications'));
+    assert.equal(n.body.items[0].title, 'Damaged gallon');
+
+    const list = await as(staff, api().get(`/api/damage?orderId=${o.order_id}`));
+    assert.equal(list.body.reports.length, 1);
+    assert.equal((await as(staff, api().get('/api/damage'))).status, 403);
+    const mine = await as(owner, api().post('/api/damage')).send({ orderId: o.order_id, photo: PNG, note: 'Leaking' });
+    assert.equal(mine.body.message, 'Saved. A new gallon replaces it.');
+  });
+});

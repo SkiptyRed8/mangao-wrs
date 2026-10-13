@@ -10,6 +10,7 @@ import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
+import '../common/damage.dart';
 import '../shell.dart';
 import '../station/send_out.dart';
 
@@ -179,7 +180,11 @@ class DeliveryCard extends StatelessWidget {
           ),
         ]),
         const Gap(4),
-        Center(child: LinkText('Report damaged gallon', () => toast(context, 'Report damaged gallon comes in step 41'))),
+        Center(
+          child: LinkText('Report damaged gallon', () async {
+            if (await reportDamaged(context, o)) await onDone();
+          }),
+        ),
       ]),
     );
   }

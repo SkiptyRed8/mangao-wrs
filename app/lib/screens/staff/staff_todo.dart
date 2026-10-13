@@ -8,6 +8,7 @@ import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import '../common/damage.dart';
 import '../common/loans.dart';
 import '../owner/order_board.dart';
 import '../shell.dart';
@@ -170,6 +171,7 @@ class _StaffOrderDetailsState extends State<StaffOrderDetails> {
               ]),
             ),
             const Gap(10),
+            DamageBox(o.id, version: d),
             if (!['New', 'Declined', 'Cancelled'].contains(o.status)) OrderLoansBox(o),
             const Gap(4),
             if (o.status == 'Processing') ...[
@@ -178,7 +180,9 @@ class _StaffOrderDetailsState extends State<StaffOrderDetails> {
               }),
               const Gap(),
             ],
-            Btn('Report damaged gallon', () => toast(context, 'Report damaged gallon comes in step 41'), outline: true),
+            Btn('Report damaged gallon', () async {
+              if (await reportDamaged(context, o)) await reload();
+            }, outline: true),
           ]);
         },
       ),
