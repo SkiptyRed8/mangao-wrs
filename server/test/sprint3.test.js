@@ -134,3 +134,39 @@ describe('Push notifications and alert preferences (step 36)', () => {
     assert.equal(rows[1].guest_token, GUEST);
   });
 });
+
+describe('Weekly Sales Report (step 37)', () => {
+  test('7 days from Monday, totals, and compared with last week', async () => {
+    const { query: q } = require('../src/db');
+    const add = (paidAt, total, qty) =>
+      q(
+        `INSERT INTO orders (order_source, order_type, customer_name, contact_phone, quantity, unit_price, total_amount, status, payment_method, payment_status, paid_at, delivered_at, tank_counted_at, created_at)
+         VALUES ('Logged','Refill','Weekly Test','09180000000',?,35,?,'Delivered','COD','Paid',?,?,?,?)`,
+        [qty, total, paidAt, paidAt, paidAt, paidAt]
+      );
+    // Wednesday Oct 7, 2026 (last week) and Wednesday Oct 14, 2026 (this week), 10:00 Philippine time.
+    await add(new Date('2026-10-07T10:00:00+08:00'), 70, 2);
+    await add(new Date('2026-10-14T10:00:00+08:00'), 140, 4);
+    const time = require('../src/services/time');
+    time.setNow(new Date('2026-10-15T09:00:00+08:00'));
+    try {
+      const r = await as(owner, api().get('/api/sales/weekly?start=2026-10-14'));
+      assert.equal(r.status, 200);
+      assert.equal(r.body.start, '2026-10-12', 'Monday of that week');
+      assert.equal(r.body.end, '2026-10-18');
+      assert.equal(r.body.days.length, 7);
+      assert.equal(r.body.days[0].day, 'Mon');
+      const wed = r.body.days[2];
+      assert.equal(wed.date, '2026-10-14');
+      assert.ok(wed.moneyEarned >= 140);
+      assert.equal(r.body.days[4].future, true, 'Friday is after today');
+      assert.ok(r.body.lastWeek.moneyEarned >= 70);
+      assert.equal(typeof r.body.change.moneyEarned === 'number' || r.body.change.moneyEarned === null, true);
+      const future = await as(owner, api().get('/api/sales/weekly?start=2026-10-26'));
+      assert.equal(future.body.error.title, 'No sales yet');
+      assert.equal((await as(staff, api().get('/api/sales/weekly'))).status, 403);
+    } finally {
+      time.setNow(null);
+    }
+  });
+});

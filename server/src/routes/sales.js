@@ -1,9 +1,9 @@
-// Daily Sales Report (FR-10; Admin Sales 1). The weekly report and export come in Sprint 3.
+// Sales reports (FR-10; Admin Sales 1-2): daily and weekly. Unpaid accounts and export are below.
 const { Router } = require('express');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { bad } = require('../utils/errors');
 const { now, phParts } = require('../services/time');
-const { dayRange, daySummary, dayOrders } = require('../services/reports');
+const { dayRange, daySummary, dayOrders, addDays, mondayOf, weekSummary, change } = require('../services/reports');
 
 const router = Router();
 router.use(requireAuth, requireRole('Owner'));
@@ -21,6 +21,32 @@ router.get('/daily', async (req, res) => {
   if (date > today) throw bad('DATE_FUTURE', 'No sales yet', 'Pick today or an earlier day.');
   const [start, end] = dayRange(date);
   res.json({ date, today, summary: await daySummary(start, end), orders: await dayOrders(start, end) });
+});
+
+// GET /api/sales/weekly?start=YYYY-MM-DD (any day of the week; the Monday is used)
+//  -> { start, end, today, days[7], totals, lastWeek, change: { moneyEarned, gallons, orders } }
+router.get('/weekly', async (req, res) => {
+  const today = ymd(now());
+  const pick = req.query.start || today;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(pick)) throw bad('DATE_INVALID', 'Date not valid', 'Pick the week again.');
+  const start = mondayOf(pick);
+  if (start > today) throw bad('DATE_FUTURE', 'No sales yet', 'Pick this week or an earlier week.');
+  const week = await weekSummary(start, today);
+  const last = await weekSummary(addDays(start, -7), today);
+  res.json({
+    start,
+    end: addDays(start, 6),
+    today,
+    days: week.days,
+    totals: week.totals,
+    lastWeek: last.totals,
+    lastWeekDays: last.days.map((d) => ({ date: d.date, day: d.day, moneyEarned: d.moneyEarned })),
+    change: {
+      moneyEarned: change(week.totals.moneyEarned, last.totals.moneyEarned),
+      gallons: change(week.totals.gallons, last.totals.gallons),
+      orders: change(week.totals.orders, last.totals.orders),
+    },
+  });
 });
 
 module.exports = router;

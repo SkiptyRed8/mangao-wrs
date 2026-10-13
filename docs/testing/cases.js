@@ -444,4 +444,22 @@ module.exports = [
       ['Turn New orders back on; customer orders again.', 'The owner gets the alert again.'],
     ],
   },
+  {
+    n: 37,
+    title: 'Weekly Sales Report',
+    screens: 'Admin Sales 2',
+    as: 'Owner',
+    before: 'Have a few Delivered orders and walk-ins this week (and, if you can, last week) so the bars show.',
+    cases: [
+      ['Sales tab, tap Weekly.', 'Title "Weekly Sales Report"; the week shows as e.g. "Oct 12 - 18, 2026" (Monday to Sunday).'],
+      ['Look at the blue box.', 'Money earned this week, and "Last week: P..." under it.'],
+      ['Look at the bar chart.', 'Mon to Sun bars: dark blue = this week, light = last week; the amount is over each bar. Days after today show no amount.'],
+      ['Compared with last week box.', 'Lines like "Money earned: Up 25% from last week" (or Down / Same / "No sales last week to compare").'],
+      ['Totals box.', 'Gallons processed (with last week), Packages sold, Delivery vs walk-in, Orders completed, Unpaid, Rider paid. Totals match the 7 Daily reports added together.'],
+      ['Tap a day in Day by day (or tap its bar).', 'Switches to the Daily Sales Report of that day.'],
+      ['Tap Weekly again, then the < arrow.', 'Last week shows; > goes back. > is grey on the current week.'],
+      ['Tap the week text and pick any date in the calendar.', 'The week of that date shows (starts on its Monday).'],
+      ['Log in as Staff.', 'No Sales tab (owner only).'],
+    ],
+  },
 ];

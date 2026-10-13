@@ -66,3 +66,45 @@ async function dayOrders(start, end) {
 }
 
 module.exports = { dayRange, daySummary, dayOrders };
+
+// ---------------------------------------------------------------- Weekly Sales Report (step 37)
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** 'YYYY-MM-DD' plus n days. */
+function addDays(ymd, n) {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The Monday of the week of 'YYYY-MM-DD'. */
+function mondayOf(ymd) {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  const back = (d.getUTCDay() + 6) % 7; // Sunday 0 -> 6 days back
+  return addDays(ymd, -back);
+}
+
+const SUM_KEYS = ['moneyEarned', 'unpaid', 'gallons', 'packages', 'deliveryGallons', 'walkInGallons', 'riderPaid', 'walkIns', 'delivered'];
+
+/** Totals of the 7 days from Monday 'start'; days after 'today' are 0 and marked future. */
+async function weekSummary(start, today) {
+  const days = [];
+  const totals = Object.fromEntries(SUM_KEYS.map((k) => [k, 0]));
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(start, i);
+    const future = date > today;
+    const s = future ? Object.fromEntries(SUM_KEYS.map((k) => [k, 0])) : await daySummary(...dayRange(date));
+    for (const k of SUM_KEYS) totals[k] += s[k];
+    days.push({ date, day: DAY_NAMES[i], future, ...s, orders: s.delivered + s.walkIns });
+  }
+  totals.orders = totals.delivered + totals.walkIns;
+  return { days, totals };
+}
+
+/** Percent change from last week to this week (null when last week was 0). */
+const change = (now, before) => (before ? Math.round(((now - before) / before) * 1000) / 10 : null);
+
+module.exports.addDays = addDays;
+module.exports.mondayOf = mondayOf;
+module.exports.weekSummary = weekSummary;
+module.exports.change = change;

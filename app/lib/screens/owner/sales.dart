@@ -7,10 +7,10 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../shell.dart';
 import 'admin_order_details.dart';
+import 'weekly_sales.dart';
 
 /// Admin Sales 1: Daily Sales Report. Money earned, Unpaid, Gallons processed, Packages sold,
-/// Delivery vs walk-in, Rider paid, and the orders of the day. Weekly (step 37), Unpaid Accounts (38)
-/// and Export (39) come in Sprint 3.
+/// Delivery vs walk-in, Rider paid, and the orders of the day. The Weekly switch opens Admin Sales 2.
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
 
@@ -23,6 +23,7 @@ class _SalesScreenState extends State<SalesScreen> {
   Map<String, dynamic>? _data;
   ApiException? _error;
   bool _loading = true;
+  int _mode = 0; // 0 Daily, 1 Weekly
 
   static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   static String _ymd(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -97,8 +98,25 @@ class _SalesScreenState extends State<SalesScreen> {
 
   String _money(num v) => peso(v).replaceAll('.00', '');
 
+  Widget _switch() => Seg(const ['Daily', 'Weekly'], _mode, (i) => setState(() => _mode = i));
+
   @override
   Widget build(BuildContext context) {
+    if (_mode == 1) {
+      return Scaffold(
+        appBar: topBar(context, 'Weekly Sales Report'),
+        body: WeeklySales(
+          header: _switch(),
+          onOpenDay: (day) {
+            setState(() {
+              _mode = 0;
+              _day = day;
+            });
+            _load();
+          },
+        ),
+      );
+    }
     final d = _data;
     final s = d == null ? null : d['summary'] as Map<String, dynamic>;
     final orders = d == null ? const [] : d['orders'] as List;
@@ -108,9 +126,7 @@ class _SalesScreenState extends State<SalesScreen> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: Body([
-          Seg(const ['Daily', 'Weekly'], 0, (i) {
-            if (i == 1) toast(context, 'Weekly Sales Report comes in step 37');
-          }),
+          _switch(),
           const Gap(10),
           Box(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
