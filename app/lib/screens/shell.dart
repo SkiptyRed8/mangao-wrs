@@ -9,6 +9,8 @@ import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
 import 'customer/customer_home.dart';
 import 'owner/order_board.dart';
+import 'owner/owner_home.dart';
+import 'staff/staff_todo.dart';
 import 'owner/settings_screen.dart';
 import 'owner/staff_screens.dart';
 
@@ -29,8 +31,7 @@ class Shell extends StatelessWidget {
     switch (r) {
       case Role.owner:
         return const [
-          TabDef('Home', Icons.home_outlined, Icons.home,
-              ComingSoon('Home', step: 27, what: "Log Walk-in, Log Delivery, tank counter, Needs Your Action, Today's Summary, stock alerts")),
+          TabDef('Home', Icons.home_outlined, Icons.home, OwnerHome()),
           TabDef('Orders', Icons.receipt_long_outlined, Icons.receipt_long, OrderBoard()),
           TabDef('Inventory', Icons.inventory_2_outlined, Icons.inventory_2,
               ComingSoon('Inventory', step: 26, what: 'Stock overview, new gallons, seals, movement history, borrowed gallons')),
@@ -40,8 +41,7 @@ class Shell extends StatelessWidget {
         ];
       case Role.staff:
         return const [
-          TabDef('To Do', Icons.assignment_outlined, Icons.assignment,
-              ComingSoon('To Do', step: 30, what: 'Tank counter, Processing, Mark Out for Delivery, Log Walk-in, Log Delivery')),
+          TabDef('To Do', Icons.assignment_outlined, Icons.assignment, StaffTodo()),
           TabDef('Live Map', Icons.location_on_outlined, Icons.location_on,
               ComingSoon('Live Map', step: 34, what: 'Rider location and order pins')),
           TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle,

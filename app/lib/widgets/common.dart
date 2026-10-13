@@ -712,3 +712,66 @@ class LoaderState<T> extends State<Loader<T>> {
     return RefreshIndicator(onRefresh: reload, child: widget.builder(context, _data as T, reload));
   }
 }
+
+/// Quantity box with - and + (Log Walk-in, Log Delivery Order). 0 shows as empty ("Quantity missing").
+class QtyStepper extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+  final int max;
+  final bool highlight;
+  const QtyStepper(this.value, this.onChanged, {super.key, this.max = 100, this.highlight = false});
+
+  Widget _btn(IconData icon, VoidCallback? onTap, {bool filled = false}) => SizedBox(
+        width: 40,
+        height: 40,
+        child: Material(
+          color: filled ? Brand.blue : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Brand.blue, width: 1.2)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap,
+            child: Icon(icon, color: filled ? Colors.white : Brand.blue, size: 20),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: highlight ? Brand.light : Colors.white,
+          border: Border.all(color: Brand.blue, width: highlight ? 2.2 : 1.2),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          _btn(Icons.remove, value > 0 ? () => onChanged(value - 1) : null),
+          Expanded(
+            child: Text(value == 0 ? '' : '$value',
+                textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          ),
+          _btn(Icons.add, value < max ? () => onChanged(value + 1) : null, filled: true),
+        ]),
+      );
+}
+
+/// Total box under a form: "Total  2 x P30.00 per gallon (walk-in)   P60.00".
+class TotalBox extends StatelessWidget {
+  final String detail;
+  final String amount;
+  const TotalBox(this.detail, this.amount, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Box(
+        tint: true,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Total', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(detail, style: const TextStyle(color: Brand.muted, fontSize: 12)),
+            ]),
+          ),
+          Text(amount, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
+        ]),
+      );
+}
