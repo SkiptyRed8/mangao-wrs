@@ -24,8 +24,8 @@ module.exports = {
   mail: {
     host: env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(env.SMTP_PORT || 465),
-    user: env.SMTP_USER || '',
-    pass: env.SMTP_PASS || '',
+    user: (env.SMTP_USER || '').trim(),
+    pass: (env.SMTP_PASS || '').replace(/\s+/g, '').replace(/^['"]|['"]$/g, ''), // Google shows the App Password in 4 groups with spaces
     from: env.MAIL_FROM || 'Mangao Water Refilling Station <no-reply@example.com>',
   },
 };

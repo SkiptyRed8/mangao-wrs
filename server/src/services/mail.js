@@ -26,6 +26,18 @@ function maskEmail(email) {
   return `${name.slice(0, 1)}••••@${domain}`;
 }
 
+/** Plain-words reason and fix for a Gmail error, printed in the server window. */
+function mailHint(err) {
+  const m = `${err.code || ''} ${err.responseCode || ''} ${err.message || ''}`;
+  if (/EAUTH|535|Invalid login|Username and Password not accepted|BadCredentials/i.test(m))
+    return 'Gmail refused the login. Check SMTP_USER is the full Gmail address, SMTP_PASS is a 16-letter App Password (not your normal Gmail password), and 2-Step Verification is ON for that Google account. Make a new App Password if unsure.';
+  if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND|ECONNRESET|EAI_AGAIN|ESOCKET/i.test(m))
+    return 'Cannot reach smtp.gmail.com. Check the internet connection; an antivirus or firewall may block port 465 (try SMTP_PORT=587).';
+  if (/534|5\.7\.9|Application-specific/i.test(m)) return 'Google wants an App Password here, not the normal password.';
+  if (/550|553|invalid.*recipient|No such user/i.test(m)) return 'Gmail did not accept the receiving email address.';
+  return 'See the message above.';
+}
+
 /** Sends the 6-digit reset code. Returns { sent: true } or { sent: false } when email is not set up. */
 async function sendResetCode(to, name, code) {
   if (!mailReady()) {
@@ -54,4 +66,4 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
-module.exports = { mailReady, maskEmail, sendResetCode };
+module.exports = { mailReady, maskEmail, sendResetCode, mailHint, getTransport };

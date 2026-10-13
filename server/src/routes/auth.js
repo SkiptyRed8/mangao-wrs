@@ -9,7 +9,7 @@ const { signToken, requireAuth } = require('../middleware/auth');
 const { bad, unauthorized, notFound, conflict, HttpError } = require('../utils/errors');
 const { MIN_PASSWORD, normalizePhone, isPhone, normalizeEmail, isEmail, text } = require('../utils/validate');
 const { shapeUser } = require('../services/users');
-const { mailReady, maskEmail, sendResetCode } = require('../services/mail');
+const { mailReady, maskEmail, sendResetCode, mailHint } = require('../services/mail');
 
 const router = Router();
 
@@ -148,6 +148,7 @@ router.post('/forgot', async (req, res) => {
     sent = (await sendResetCode(user.email, user.full_name, code)).sent;
   } catch (err) {
     console.error('[email] could not send the reset code:', err.message);
+    console.error('[email] ' + mailHint(err));
     await query('UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL', [user.user_id]);
     throw new HttpError(503, 'EMAIL_NOT_SENT', 'Email not sent', 'Try again in a moment.');
   }
