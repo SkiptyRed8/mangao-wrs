@@ -43,6 +43,10 @@ class _OrderBoardState extends State<OrderBoard> {
   @override
   void initState() {
     super.initState();
+    if (app.boardView != null) {
+      _view = app.boardView!;
+      app.boardView = null;
+    }
     _load();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load(quiet: true));
   }

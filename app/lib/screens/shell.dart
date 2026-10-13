@@ -11,6 +11,7 @@ import 'customer/customer_home.dart';
 import 'owner/inventory.dart';
 import 'owner/order_board.dart';
 import 'owner/owner_home.dart';
+import 'owner/sales.dart';
 import 'rider/deliveries.dart';
 import 'staff/staff_todo.dart';
 import 'owner/settings_screen.dart';
@@ -36,8 +37,7 @@ class Shell extends StatelessWidget {
           TabDef('Home', Icons.home_outlined, Icons.home, OwnerHome()),
           TabDef('Orders', Icons.receipt_long_outlined, Icons.receipt_long, OrderBoard()),
           TabDef('Inventory', Icons.inventory_2_outlined, Icons.inventory_2, InventoryScreen()),
-          TabDef('Sales', Icons.bar_chart_outlined, Icons.bar_chart,
-              ComingSoon('Sales', step: 29, what: 'Daily and weekly sales, unpaid accounts, export')),
+          TabDef('Sales', Icons.bar_chart_outlined, Icons.bar_chart, SalesScreen()),
           TabDef('More', Icons.more_horiz, Icons.more_horiz, OwnerMore()),
         ];
       case Role.staff:

@@ -174,6 +174,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Which Order Board tab to open next (Home tiles and Needs Your Action set it).
+  String? boardView;
+
+  /// Owner: open the Orders tab at one view (new, processing, out, delivered, not-delivered ...).
+  void openBoard(String view) {
+    boardView = view;
+    goTab(1);
+  }
+
   /// Server check shown on the Welcome screen while setting up.
   Future<bool> serverOk() async {
     try {
