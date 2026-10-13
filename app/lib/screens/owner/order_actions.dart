@@ -194,9 +194,6 @@ Future<bool> changeRider(BuildContext context, Order o) async {
   }
 }
 
-/// Buttons for steps that come in Sprint 2.
-void comingInStep(BuildContext context, int step, String what) => toast(context, '$what comes in step $step');
-
 /// Admin Orders 5: Cancel this order? Choose a reason (Customer asked to cancel, Cannot reach customer,
 /// Out of stock, Other). For new, Processing and Not delivered orders. Returns true when cancelled.
 Future<bool> cancelOrder(BuildContext context, Order o) async {

@@ -27,6 +27,7 @@ app.use('/api/map', require('./routes/map'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/loans', require('./routes/loans'));
 app.use('/api/damage', require('./routes/damage'));
+app.use('/api/customers', require('./routes/customers'));
 // Damaged-gallon photos (random file names).
 app.use('/uploads', express.static(require('./routes/damage').UPLOADS, { maxAge: '7d', index: false }));
 

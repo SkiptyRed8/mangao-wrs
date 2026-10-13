@@ -352,3 +352,38 @@ describe('Damaged gallon report (step 41)', () => {
     assert.equal(mine.body.message, 'Saved. A new gallon replaces it.');
   });
 });
+
+describe('Customers list and records (step 42)', () => {
+  test('list with accounts and logged customers, search, and a full profile', async () => {
+    const list = await as(owner, api().get('/api/customers'));
+    assert.equal(list.status, 200);
+    const ana = await one("SELECT user_id FROM users WHERE phone_number = '09172001111'");
+    const row = list.body.customers.find((c) => c.key === `u${ana.user_id}`);
+    assert.equal(row.name, 'Ana Lim');
+    assert.equal(row.account, true);
+    assert.ok(row.orders >= 2, 'app order and the order logged with her phone');
+    assert.ok(list.body.customers.find((c) => c.key === 'p09185550000' && c.name === 'Pedro Cruz' && c.owed === 105));
+    const ben = list.body.customers.find((c) => c.name === 'Mang Ben');
+    assert.equal(ben.borrowed, 1, 'Mang Ben still has 1 gallon out (step 40 test)');
+    assert.ok(!list.body.customers.some((c) => c.key === 'n'), 'walk-ins without a name are left out');
+
+    const s = await as(owner, api().get('/api/customers?q=0918 555 0000'));
+    assert.deepEqual(s.body.customers.map((c) => c.name), ['Pedro Cruz']);
+
+    const p = await as(owner, api().get(`/api/customers/u${ana.user_id}`));
+    assert.equal(p.status, 200);
+    assert.equal(p.body.customer.name, 'Ana Lim');
+    assert.equal(p.body.customer.email, 'ana@example.com');
+    assert.ok(p.body.orders.length >= 2);
+    assert.ok(Array.isArray(p.body.addresses));
+    assert.equal(typeof p.body.unpaid.owed, 'number');
+    assert.equal(typeof p.body.stats.gallons, 'number');
+
+    const ped = await as(owner, api().get('/api/customers/p09185550000'));
+    assert.equal(ped.body.unpaid.owed, 105);
+    assert.equal(ped.body.customer.account, false);
+
+    assert.equal((await as(owner, api().get('/api/customers/pnobody'))).status, 404);
+    assert.equal((await as(staff, api().get('/api/customers'))).status, 403);
+  });
+});

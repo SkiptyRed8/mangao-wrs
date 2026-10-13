@@ -9,12 +9,12 @@ import '../theme/brand.dart';
 import '../widgets/common.dart';
 import '../widgets/watch.dart';
 import 'common/account_screen.dart';
-import 'common/coming_soon.dart';
 import 'common/done_today.dart';
 import 'common/live_map.dart';
 import 'common/notifications.dart';
 import 'customer/customer_home.dart';
 import 'customer/my_orders.dart';
+import 'owner/customers.dart';
 import 'owner/inventory.dart';
 import 'owner/order_board.dart';
 import 'owner/owner_home.dart';
@@ -194,7 +194,7 @@ class OwnerMore extends StatelessWidget {
       appBar: topBar(context, 'More'),
       body: Body([
         RowLink('Customers', sub: 'Contacts, addresses, order history', icon: Icons.people_outline,
-            onTap: () => go(context, const ComingSoon('Customers', step: 42, what: 'Customer list and records', pushed: true))),
+            onTap: () => go(context, const CustomersScreen())),
         RowLink('Staff & Riders', sub: 'Add, edit, deactivate', icon: Icons.badge_outlined,
             onTap: () => go(context, const StaffListScreen())),
         RowLink('Prices & Settings', sub: 'Prices, tank limit, low-stock levels, station location', icon: Icons.tune,
