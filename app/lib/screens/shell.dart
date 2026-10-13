@@ -10,6 +10,7 @@ import 'common/coming_soon.dart';
 import 'customer/customer_home.dart';
 import 'owner/order_board.dart';
 import 'owner/owner_home.dart';
+import 'rider/deliveries.dart';
 import 'staff/staff_todo.dart';
 import 'owner/settings_screen.dart';
 import 'owner/staff_screens.dart';
@@ -50,8 +51,7 @@ class Shell extends StatelessWidget {
         ];
       case Role.rider:
         return const [
-          TabDef('Deliveries', Icons.local_shipping_outlined, Icons.local_shipping,
-              ComingSoon('Deliveries', step: 23, what: 'Out for Delivery list, call, directions, Delivered or Not delivered')),
+          TabDef('Deliveries', Icons.local_shipping_outlined, Icons.local_shipping, RiderDeliveries()),
           TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle,
               ComingSoon('Done Today', step: 30, what: 'Delivered today, paid and unpaid totals')),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),

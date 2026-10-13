@@ -196,3 +196,69 @@ Future<bool> changeRider(BuildContext context, Order o) async {
 
 /// Buttons for steps that come in Sprint 2.
 void comingInStep(BuildContext context, int step, String what) => toast(context, '$what comes in step $step');
+
+/// Admin Orders 5: Cancel this order? Choose a reason (Customer asked to cancel, Cannot reach customer,
+/// Out of stock, Other). For new, Processing and Not delivered orders. Returns true when cancelled.
+Future<bool> cancelOrder(BuildContext context, Order o) async {
+  List<String> reasons;
+  try {
+    final r = await app.api.get('/api/admin/orders/riders');
+    reasons = [for (final x in (r['cancelReasons'] ?? const ['Other']) as List) x as String];
+  } on ApiException catch (e) {
+    if (context.mounted) toast(context, e.message);
+    return false;
+  }
+  if (!context.mounted) return false;
+  final reason = await choose(context, 'Cancel this order?', reasons, current: reasons.first);
+  if (reason == null || !context.mounted) return false;
+  final other = TextEditingController();
+  if (reason == 'Other') {
+    return formSheet(
+      context,
+      'Other reason',
+      button: 'Confirm',
+      fields: (set) => [Field('Reason', other, hint: 'e.g. Customer moved the order to tomorrow', helper: 'The customer sees this reason.')],
+      onSave: () async {
+        final r = await app.api.post('/api/admin/orders/${o.id}/cancel', {'reason': 'Other', 'other': other.text});
+        return r['message'] as String?;
+      },
+    );
+  }
+  try {
+    final r = await app.api.post('/api/admin/orders/${o.id}/cancel', {'reason': reason});
+    if (context.mounted) toast(context, (r['message'] ?? 'Order cancelled') as String);
+    return true;
+  } on ApiException catch (e) {
+    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    return false;
+  }
+}
+
+/// Admin Orders 5: Re-deliver this order? Back to Processing for the next batch; not counted again.
+Future<bool> redeliverOrder(BuildContext context, Order o) async {
+  final ok = await confirm(context, 'Re-deliver this order?',
+      sub: 'Goes back to Processing for the next batch. Not counted again in the tank counter.', cancel: 'Back');
+  if (!ok || !context.mounted) return false;
+  try {
+    final r = await app.api.post('/api/admin/orders/${o.id}/redeliver');
+    if (context.mounted) toast(context, (r['message'] ?? 'Back to Processing.') as String);
+    return true;
+  } on ApiException catch (e) {
+    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    return false;
+  }
+}
+
+/// Admin Orders 6 / Unpaid: only the owner changes Unpaid to Paid.
+Future<bool> markPaid(BuildContext context, Order o) async {
+  final ok = await confirm(context, 'Mark as paid?', sub: '${o.name.isEmpty ? 'Guest' : o.name} paid ${peso(o.total)}.');
+  if (!ok || !context.mounted) return false;
+  try {
+    final r = await app.api.post('/api/admin/orders/${o.id}/paid');
+    if (context.mounted) toast(context, (r['message'] ?? 'Marked paid.') as String);
+    return true;
+  } on ApiException catch (e) {
+    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    return false;
+  }
+}

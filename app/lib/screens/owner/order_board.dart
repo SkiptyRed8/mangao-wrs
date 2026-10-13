@@ -10,6 +10,7 @@ import '../../widgets/common.dart';
 import '../common/coming_soon.dart';
 import '../shell.dart';
 import 'admin_order_details.dart';
+import '../station/send_out.dart';
 import 'order_actions.dart';
 
 /// Admin Orders 1: Order Board. Tabs New, Processing, Out for Delivery, Delivered (today), the Filter for
@@ -100,6 +101,16 @@ class _OrderBoardState extends State<OrderBoard> {
     }
   }
 
+  Future<void> _send(List<Order> list) async {
+    if (await sendOut(context, list)) {
+      setState(() {
+        _select = false;
+        _picked.clear();
+      });
+      await _load();
+    }
+  }
+
   int _count(String key) => ((_counts[key] ?? 0) as num).toInt();
 
   Widget _chip(String view, String label) {
@@ -130,7 +141,11 @@ class _OrderBoardState extends State<OrderBoard> {
       return Bottom([Btn('Accept all (${_orders.length})', () => _accept(_orders))]);
     }
     if (_view == 'processing' && _orders.isNotEmpty) {
-      return Bottom([Btn('Mark all Out for Delivery (${_orders.length})', () => comingInStep(context, 22, 'Mark Out for Delivery'))]);
+      if (_select) {
+        final list = _orders.where((o) => _picked.contains(o.id)).toList();
+        return Bottom([Btn('Mark selected Out for Delivery (${list.length})', list.isEmpty ? null : () => _send(list))]);
+      }
+      return Bottom([Btn('Mark all Out for Delivery (${_orders.length})', () => _send(_orders))]);
     }
     return null;
   }
@@ -154,7 +169,7 @@ class _OrderBoardState extends State<OrderBoard> {
                   outline: true, small: true),
             ),
             const Gap(8),
-            if (_view == 'new') ...[
+            if (_view == 'new' || _view == 'processing') ...[
               Expanded(
                 child: Btn(_select ? 'Done' : 'Select', () => setState(() {
                       _select = !_select;

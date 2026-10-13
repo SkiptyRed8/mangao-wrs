@@ -8,6 +8,7 @@ import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
+import '../station/send_out.dart';
 import 'order_actions.dart';
 
 /// Admin Orders 2-4: Order Details by stage. Order Info (tap the phone number to call, the address for
@@ -93,13 +94,43 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
           ]),
         ]);
       case 'Processing':
-        return Bottom([Btn('Mark Out for Delivery', () => comingInStep(context, 22, 'Mark Out for Delivery'))]);
+        return Bottom([
+          Btn('Mark Out for Delivery', () async {
+            if (await sendOut(context, [o])) await _reload();
+          }),
+        ]);
+      case 'Out for Delivery':
+        // Admin Orders 6: the owner records the delivery when the owner is the rider.
+        if (o.riderRole != 'Owner') return null;
+        return Bottom([
+          Row(children: [
+            Expanded(
+              child: Btn('Not delivered', () async {
+                if (await recordNotDelivered(context, o, path: '/api/admin/orders')) await _reload();
+              }, outline: true),
+            ),
+            const Gap(10),
+            Expanded(
+              child: Btn('Delivered', () async {
+                if (await recordDelivered(context, o, path: '/api/admin/orders')) await _reload();
+              }),
+            ),
+          ]),
+        ]);
       case 'Not Delivered':
         return Bottom([
           Row(children: [
-            Expanded(child: Btn('Cancel order', () => comingInStep(context, 24, 'Cancel order'), outline: true)),
+            Expanded(
+              child: Btn('Cancel order', () async {
+                if (await cancelOrder(context, o)) await _reload();
+              }, outline: true),
+            ),
             const Gap(10),
-            Expanded(child: Btn('Re-deliver', () => comingInStep(context, 24, 'Re-deliver'))),
+            Expanded(
+              child: Btn('Re-deliver', () async {
+                if (await redeliverOrder(context, o)) await _reload();
+              }),
+            ),
           ]),
         ]);
       default:
@@ -119,10 +150,23 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
         final lunch = o.estText.contains(' to ');
         return Scaffold(
           appBar: AppBar(title: const Text('Order Details'), actions: [
-            IconButton(
+            PopupMenuButton<String>(
               tooltip: 'Order actions',
               icon: const Icon(Icons.more_vert),
-              onPressed: () => comingInStep(context, 21, 'Order actions (cancel, edit payment)'),
+              color: Colors.white,
+              onSelected: (v) async {
+                var changed = false;
+                if (v == 'damaged') comingInStep(context, 41, 'Report damaged gallon');
+                if (v == 'rider') changed = await changeRider(context, o);
+                if (v == 'cancel') changed = await cancelOrder(context, o);
+                if (changed) await reload();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'damaged', child: Text('Report damaged gallon')),
+                if (o.status == 'Processing') const PopupMenuItem(value: 'rider', child: Text('Change rider')),
+                if (['New', 'Processing', 'Not Delivered'].contains(o.status))
+                  const PopupMenuItem(value: 'cancel', child: Text('Cancel order')),
+              ],
             ),
           ]),
           body: Body([
@@ -173,12 +217,20 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
                     : null,
               ),
             if (o.status == 'Delivered')
-              _box('Payment', [
-                Text(
-                  o.paymentStatus == 'Unpaid' ? 'Unpaid: owes ${peso(o.total)}' : (o.payment == 'Paid at station' ? 'Paid at station' : 'Paid'),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ]),
+              _box(
+                'Payment',
+                [
+                  Text(
+                    o.paymentStatus == 'Unpaid' ? 'Unpaid: owes ${peso(o.total)}' : (o.payment == 'Paid at station' ? 'Paid at station' : 'Paid'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+                action: o.paymentStatus == 'Unpaid'
+                    ? SmallBtn('Mark paid', () async {
+                        if (await markPaid(context, o)) await reload();
+                      })
+                    : null,
+              ),
             const Section('Status Timeline'),
             TimelineList(steps),
           ]),
