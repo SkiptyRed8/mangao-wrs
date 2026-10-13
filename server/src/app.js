@@ -13,6 +13,10 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/account', require('./routes/account'));
 app.use('/api/staff', require('./routes/staff'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/geo', require('./routes/geo'));
+app.use('/api/addresses', require('./routes/addresses'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/admin/orders', require('./routes/admin-orders'));
 
 app.use(notFoundRoute);
 app.use(errorHandler);

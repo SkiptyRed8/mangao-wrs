@@ -29,3 +29,21 @@ String timeFmt(DateTime t) {
 
 /// "3 gallons" / "1 gallon"
 String gallons(int n) => n == 1 ? '1 gallon' : '$n gallons';
+
+/// Philippine time (UTC+8) of a time from the server, whatever the computer's time zone.
+DateTime ph(DateTime t) => t.toUtc().add(const Duration(hours: 8));
+
+const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/// 9:45 AM in Philippine time.
+String clockPh(DateTime? t) => t == null ? '' : timeFmt(ph(t));
+
+/// Sep 28, 9:15 AM in Philippine time.
+String dateTimePh(DateTime? t) {
+  if (t == null) return '';
+  final p = ph(t);
+  return '${_months[p.month - 1]} ${p.day}, ${timeFmt(p)}';
+}
+
+/// Money without the peso sign rounding issues: 35 -> 35.00
+String money2(num v) => v.toStringAsFixed(2);

@@ -7,6 +7,8 @@ import '../widgets/common.dart';
 import '../widgets/watch.dart';
 import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
+import 'customer/customer_home.dart';
+import 'owner/order_board.dart';
 import 'owner/settings_screen.dart';
 import 'owner/staff_screens.dart';
 
@@ -29,8 +31,7 @@ class Shell extends StatelessWidget {
         return const [
           TabDef('Home', Icons.home_outlined, Icons.home,
               ComingSoon('Home', step: 27, what: "Log Walk-in, Log Delivery, tank counter, Needs Your Action, Today's Summary, stock alerts")),
-          TabDef('Orders', Icons.receipt_long_outlined, Icons.receipt_long,
-              ComingSoon('Orders', step: 16, what: 'Order Board: New, Processing, Out for Delivery, Delivered')),
+          TabDef('Orders', Icons.receipt_long_outlined, Icons.receipt_long, OrderBoard()),
           TabDef('Inventory', Icons.inventory_2_outlined, Icons.inventory_2,
               ComingSoon('Inventory', step: 26, what: 'Stock overview, new gallons, seals, movement history, borrowed gallons')),
           TabDef('Sales', Icons.bar_chart_outlined, Icons.bar_chart,
@@ -57,8 +58,7 @@ class Shell extends StatelessWidget {
         ];
       default:
         return const [
-          TabDef('Home', Icons.home_outlined, Icons.home,
-              ComingSoon('Home', step: 13, what: 'Active order card, Order Now, price list')),
+          TabDef('Home', Icons.home_outlined, Icons.home, CustomerHome()),
           TabDef('My Orders', Icons.list_alt_outlined, Icons.list_alt,
               ComingSoon('My Orders', step: 32, what: 'Unpaid balance, active orders, history, reorder')),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),

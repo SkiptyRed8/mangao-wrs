@@ -13,7 +13,7 @@ describe('Setup (T03-T05)', () => {
     assert.equal(r.body.ok, true);
     assert.equal(r.body.app, 'mangao-system');
     assert.equal(r.body.database, 'ok');
-    assert.equal(r.body.users, 4);
+    assert.equal(r.body.users, 6);
   });
 
   test('all tables of the new ordering process exist', async () => {

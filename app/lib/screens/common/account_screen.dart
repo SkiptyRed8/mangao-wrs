@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../models/order.dart';
 import '../../models/user.dart';
+import '../../services/api.dart';
 import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/watch.dart';
 import '../auth/signup_screen.dart';
+import '../customer/address_screen.dart';
 import '../shell.dart';
 
 /// My Account (Admin More 5, Staff 7, Rider 7, Customer 8): profile, Change password, Log out.
@@ -88,10 +91,7 @@ class AccountScreen extends StatelessWidget {
                 Text(u.email.isEmpty ? '-' : u.email, style: const TextStyle(color: Brand.muted)),
               ]),
             ),
-          if (customer) ...[
-            const Section('Saved Addresses'),
-            const ComingSoonCard(step: 15, what: 'Saved addresses: Home, Work and more, pinned on the map'),
-          ],
+          if (customer) const SavedAddresses(),
           if (app.guest) ...[
             const Note('Guest Mode: orders are kept on this phone only'),
             Btn('Create account', () => go(context, const SignupScreen())),
@@ -105,5 +105,59 @@ class AccountScreen extends StatelessWidget {
         ]),
       );
     });
+  }
+}
+
+/// Customer 7: Saved Addresses inside My Account. Tap one to edit or delete it; Add address.
+class SavedAddresses extends StatefulWidget {
+  const SavedAddresses({super.key});
+
+  @override
+  State<SavedAddresses> createState() => _SavedAddressesState();
+}
+
+class _SavedAddressesState extends State<SavedAddresses> {
+  List<Address>? _list;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await app.api.get('/api/addresses');
+      if (mounted) {
+        setState(() {
+          _list = [for (final x in r['addresses'] as List) Address.fromJson(x as Map<String, dynamic>)];
+          _error = null;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  Future<void> _open([Address? a]) async {
+    final msg = await go<String>(context, AddressScreen(initial: a));
+    if (msg != null && mounted) {
+      toast(context, msg);
+      await _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = _list;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Section('Saved Addresses'),
+      if (_error != null) MsgBanner('Could not load addresses', sub: _error),
+      if (list == null && _error == null) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
+      if (list != null)
+        for (final a in list) RowLink(a.name, sub: [a.text, a.landmark].where((s) => s.isNotEmpty).join(' · '), onTap: () => _open(a)),
+      Btn('Add address', () => _open(), outline: true),
+    ]);
   }
 }
