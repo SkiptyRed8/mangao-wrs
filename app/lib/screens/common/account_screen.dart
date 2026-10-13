@@ -22,7 +22,7 @@ class AccountScreen extends StatelessWidget {
     final ok = await confirm(
       context,
       app.guest ? 'Exit guest mode?' : 'Log out?',
-      sub: app.guest ? 'Orders kept on this phone will no longer be shown.' : null,
+      sub: app.guest ? 'Orders on this phone will be lost' : null,
     );
     if (!ok || !context.mounted) return;
     toRoot(context);
@@ -92,10 +92,7 @@ class AccountScreen extends StatelessWidget {
               ]),
             ),
           if (customer) const SavedAddresses(),
-          if (app.guest) ...[
-            const Note('Guest Mode: orders are kept on this phone only'),
-            Btn('Create account', () => go(context, const SignupScreen())),
-          ],
+          if (app.guest) Btn('Create account', () => go(context, const SignupScreen())),
           const Gap(12),
           if (u != null) ...[
             Btn('Change password', () => _password(context), outline: true),

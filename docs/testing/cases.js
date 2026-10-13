@@ -371,4 +371,22 @@ module.exports = [
       ['An order delivered Unpaid.', 'Unpaid Balance card "Amount owed P..." at the top. It goes away after the owner marks it paid.'],
     ],
   },
+  {
+    n: 33,
+    title: 'Guest mode',
+    screens: 'Customer 9, 10',
+    as: 'Nobody logged in (Welcome screen)',
+    cases: [
+      ['Welcome > Continue as guest.', 'Customer Home with the note "Orders kept on this phone only", Order Now and the Price List.'],
+      ['Order Now.', 'Order Form has a Name field at the top; phone is empty; no saved addresses.'],
+      ['Place order without a name.', 'Message box "Name missing".'],
+      ['Fill Name Lito, phone 0918 555 1212, type an address, place the order.', 'Thank-you message; the order shows on Home and in My Orders with the note "This phone only; lost if the app is deleted".'],
+      ['Owner accepts it.', 'The guest sees Processing like a normal customer.'],
+      ['My Account (guest).', 'Only Create account and Exit guest mode.'],
+      ['Create account.', 'Sign up form with Name and Phone already filled from the guest order; add email, password, tick the box, Create account.'],
+      ['Continue.', '"Account created" says "The orders on this phone are now in your account."; My Orders shows the guest order under the new account.'],
+      ['Log out, Continue as guest again, place an order, then My Account > Exit guest mode > Cancel.', 'Stays in guest mode.'],
+      ['Exit guest mode > Confirm ("Orders on this phone will be lost").', 'Back to Welcome; continuing as guest again shows no old orders.'],
+    ],
+  },
 ];

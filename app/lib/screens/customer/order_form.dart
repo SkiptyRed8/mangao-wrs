@@ -22,6 +22,7 @@ class OrderForm extends StatefulWidget {
 }
 
 class _OrderFormState extends State<OrderForm> {
+  final _name = TextEditingController();
   final _phone = TextEditingController();
   final _notes = TextEditingController();
   int _type = 0; // 0 Refill my gallons, 1 Buy a package
@@ -48,12 +49,14 @@ class _OrderFormState extends State<OrderForm> {
       _qty = a.quantity;
       _fromOrder = a.id;
       _phone.text = phoneFmt(a.phone);
+      if (app.guest) _name.text = a.name;
     }
     _load();
   }
 
   @override
   void dispose() {
+    _name.dispose();
     _phone.dispose();
     _notes.dispose();
     super.dispose();
@@ -97,6 +100,10 @@ class _OrderFormState extends State<OrderForm> {
 
   Future<void> _place() async {
     FocusScope.of(context).unfocus();
+    if (app.guest && _name.text.trim().isEmpty) {
+      setState(() => _error = const ApiException(400, 'NAME_MISSING', 'Name missing', 'Type your name so the rider knows who to look for.'));
+      return;
+    }
     if (_addressText.isEmpty) {
       setState(() => _error = const ApiException(400, 'ADDRESS_MISSING', 'Delivery address missing', 'Pin on map or type the address.'));
       return;
@@ -133,6 +140,7 @@ class _OrderFormState extends State<OrderForm> {
         'quantity': _qty,
         'phone': _phone.text,
         'notes': _notes.text,
+        if (app.guest) 'name': _name.text,
         if (_address?.id != null) 'addressId': _address!.id,
         if (_address != null && _address!.id == null) 'address': _address!.toJson(),
         if (_address == null && _fromOrder != null) 'fromOrderId': _fromOrder,
@@ -198,6 +206,7 @@ class _OrderFormState extends State<OrderForm> {
           : Body([
               if (_error != null) MsgBanner(_error!.title, sub: _error!.message),
               if (_unpaid > 0) Note('Unpaid balance: ${peso(_unpaid)}'),
+              if (app.guest) Field('Name', _name, hint: 'Your name', kind: FieldKind.name),
               const Label('Order type'),
               const Gap(6),
               Seg(const ['Refill my gallons', 'Buy a package'], _type, (i) => setState(() => _type = i)),

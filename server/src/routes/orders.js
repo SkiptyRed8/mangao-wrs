@@ -103,7 +103,8 @@ router.post('/', async (req, res) => {
 
   const phone = normalizePhone(b.phone || (req.user && req.user.phone_number));
   if (!isPhone(phone)) throw bad('PHONE_INVALID', 'Phone number not valid', 'Use 11 digits, like 0917 200 1111.', { field: 'phone' });
-  const name = req.user ? req.user.full_name : text(b.name, 100) || 'Guest';
+  const name = req.user ? req.user.full_name : text(b.name, 100);
+  if (!name) throw bad('NAME_MISSING', 'Name missing', 'Type your name so the rider knows who to look for.', { field: 'name' });
 
   const prices = await currentPrices();
   const unit = type === 'Package' ? prices.package : prices.delivery;

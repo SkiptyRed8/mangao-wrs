@@ -4,7 +4,6 @@ import '../../config.dart';
 import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../widgets/common.dart';
-import '../common/coming_soon.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 
@@ -53,8 +52,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const Gap(),
             Btn('Sign up', () => go(context, const SignupScreen()), outline: true),
             const Gap(14),
-            LinkText('Continue as guest',
-                () => go(context, const ComingSoon('Guest mode', step: 33, what: 'Order without an account', pushed: true))),
+            LinkText('Continue as guest', () => app.startGuest()),
             const Gap(12),
             _ServerLine(_server, onRetry: () {
               setState(() => _server = null);

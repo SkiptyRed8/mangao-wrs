@@ -23,6 +23,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _consent = false;
+  bool _wasGuest = false;
   ApiException? _error;
   bool _busy = false;
 
@@ -35,6 +36,23 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   String? get _errorField => _error?.data['field'] as String?;
+
+  /// Customer 10: a guest who creates an account gets the name and phone from the last order on this phone.
+  @override
+  void initState() {
+    super.initState();
+    if (app.guest) {
+      app.api.get('/api/orders').then((r) {
+        final list = r['orders'] as List;
+        if (list.isEmpty || !mounted) return;
+        final o = list.first as Map<String, dynamic>;
+        setState(() {
+          if (_name.text.isEmpty) _name.text = (o['name'] ?? '') as String;
+          if (_phone.text.isEmpty) _phone.text = (o['phone'] ?? '') as String;
+        });
+      }).catchError((_) {});
+    }
+  }
 
   Future<void> _openTerms() async {
     final agreed = await go<bool>(context, const TermsScreen());
@@ -52,6 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
       _busy = true;
       _error = null;
     });
+    _wasGuest = app.guest;
     try {
       await app.signup(
         name: _name.text,
@@ -78,6 +97,7 @@ class _SignupScreenState extends State<SignupScreen> {
   /// "Account created" message (Login 3, Result: Account created).
   Future<void> _created() {
     final first = (app.user?.name ?? '').split(' ').first;
+    final wasGuest = _wasGuest;
     return sheet<void>(
       context,
       '',
@@ -94,7 +114,9 @@ class _SignupScreenState extends State<SignupScreen> {
         const Text('Account created', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
         const Gap(6),
         Text(
-          'Welcome${first.isEmpty ? '' : ', $first'}! Your account is ready. You can now order and track your gallons.',
+          wasGuest
+              ? 'Welcome${first.isEmpty ? '' : ', $first'}! The orders on this phone are now in your account.'
+              : 'Welcome${first.isEmpty ? '' : ', $first'}! Your account is ready. You can now order and track your gallons.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Brand.muted),
         ),

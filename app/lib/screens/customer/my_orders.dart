@@ -71,6 +71,7 @@ class _MyOrdersState extends State<MyOrders> {
           final history = all.where((o) => !o.active).toList();
           final list = _tab == 0 ? active : history;
           return Body([
+            if (app.guest) const Note('This phone only; lost if the app is deleted'),
             if (owed > 0) ...[
               Box(
                 filled: true,

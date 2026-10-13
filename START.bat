@@ -39,9 +39,15 @@ exit /b 1
 echo [2/4] Database
 cd /d "%ROOT%server"
 if not exist .env copy .env.example .env >nul
-if not exist node_modules (
-  echo       installing the server libraries ^(first time only^)...
+rem Install the server libraries the first time, and again whenever package-lock.json changes.
+set "NEEDNPM=0"
+if not exist node_modules\.mangao-lock set "NEEDNPM=1"
+if exist node_modules\.mangao-lock fc /b package-lock.json node_modules\.mangao-lock >nul 2>&1 || set "NEEDNPM=1"
+if "%NEEDNPM%"=="1" (
+  echo       installing the server libraries ^(needs internet; only when they change^)...
   call npm install --no-audit --no-fund
+  if errorlevel 1 (echo       npm install failed - check the internet connection, then run START.bat again. & pause & exit /b 1)
+  copy /y package-lock.json node_modules\.mangao-lock >nul
 )
 "%BIN%\mysql.exe" -u root -e "USE mangao_wrs" >nul 2>&1
 if errorlevel 1 (
