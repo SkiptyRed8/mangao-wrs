@@ -269,7 +269,7 @@ module.exports = [
     before: 'After RESET-DEMO-DATA the stock is 24 new gallons (below the level 30) and 420 seals.',
     cases: [
       ['Inventory tab.', 'Stock Overview: "Low-stock warning · New Gallons: 24 left", New Gallons 24, Seals 420, Movement History and Borrowed Gallons buttons.'],
-      ['Tap New Gallons.', 'Current stock 24, Add stock and Damaged or Lost buttons, Entries list with "+24 Starting stock".'],
+      ['Tap New Gallons.', 'Current stock 24, Add stock and Damaged or Lost buttons, Entries list with "+24 Stock added" and the note "Starting stock".'],
       ['Add stock > + to 10 > today > note "Supplier" > Save.', '"Stock goes up. Entry saved."; current stock 34; "+10 Stock added · <date> · Owner" at the top.'],
       ['Damaged or Lost > 1 > Damaged > note "Cracked" > Save.', '"Stock goes down. Entry saved."; 33; "-1 Damaged".'],
       ['Sell a package (walk-in Package 1).', 'New Gallons "-1 Package sold · Order #.. · Automatic"; Seals "-3 ... · Automatic".'],
