@@ -6,6 +6,7 @@ import '../../theme/brand.dart';
 import '../../widgets/common.dart';
 import '../common/coming_soon.dart';
 import 'login_screen.dart';
+import 'signup_screen.dart';
 
 /// Login 1 / Customer 1: Welcome. Log in, Sign up, Continue as guest.
 class WelcomeScreen extends StatefulWidget {
@@ -44,8 +45,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const Spacer(flex: 4),
             Btn('Log in', () => go(context, const LoginScreen())),
             const Gap(),
-            Btn('Sign up', () => go(context, const ComingSoon('Sign up', step: 9, what: 'Customer sign up with consent', pushed: true)),
-                outline: true),
+            Btn('Sign up', () => go(context, const SignupScreen()), outline: true),
             const Gap(14),
             LinkText('Continue as guest',
                 () => go(context, const ComingSoon('Guest mode', step: 33, what: 'Order without an account', pushed: true))),

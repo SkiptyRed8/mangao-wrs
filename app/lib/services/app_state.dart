@@ -94,6 +94,32 @@ class AppState extends ChangeNotifier {
     await _saveSession(r['token'] as String, AppUser.fromJson(r['user'] as Map<String, dynamic>));
   }
 
+  /// Sign up (customers only). A guest's orders move to the new account (the server reads
+  /// the guest code that is still sent with this request).
+  Future<void> signup({
+    required String name,
+    required String phone,
+    required String email,
+    required String password,
+    required String confirm,
+    required bool consent,
+  }) async {
+    final r = await api.post('/api/auth/signup', {
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'password': password,
+      'confirm': confirm,
+      'consent': consent,
+    });
+    if (guest) {
+      final prefs = await SharedPreferences.getInstance();
+      guestToken = null;
+      await prefs.remove(_kGuestToken);
+    }
+    await _saveSession(r['token'] as String, AppUser.fromJson(r['user'] as Map<String, dynamic>));
+  }
+
   /// Continue as guest: orders are kept on this phone only.
   Future<void> startGuest() async {
     final prefs = await SharedPreferences.getInstance();

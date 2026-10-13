@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../services/api.dart';
 import '../../services/app_state.dart';
 import '../../widgets/common.dart';
-import '../common/coming_soon.dart';
+import 'forgot_screens.dart';
 
 /// Login 1, 2: phone number and password; messages "Details wrong" and
-/// "Cannot log in until activated again". After log in the app opens the role's Home.
+/// "Cannot log in until activated again", and Forgot password. After log in the app opens the role's Home.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -60,10 +60,14 @@ class _LoginScreenState extends State<LoginScreen> {
         Btn('Log in', _login, busy: _busy),
         const Gap(10),
         Center(
-          child: LinkText(
-            'Forgot password',
-            () => go(context, const ComingSoon('Forgot password', step: 8, what: '6-digit code sent to the account email', pushed: true)),
-          ),
+          child: LinkText('Forgot password', () async {
+            final changed = await go<bool>(context, const ForgotPasswordScreen());
+            if (changed == true && context.mounted) {
+              setState(() => _error = null);
+              _password.clear();
+              toast(context, 'Password changed. Log in with your new password.');
+            }
+          }),
         ),
       ]),
     );
