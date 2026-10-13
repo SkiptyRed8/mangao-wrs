@@ -8,11 +8,13 @@ const { bad, notFound, conflict } = require('../utils/errors');
 const { text } = require('../utils/validate');
 const { now, estimatedDelivery, deliveryText, todayStart } = require('../services/time');
 const { shapeOrder, ORDER_SELECT, timeline, addHistory, notifyCustomer, stationPoint, firstName } = require('../services/orders');
+const { recordDelivered, recordNotDelivered } = require('../services/process');
 
 const router = Router();
 router.use(requireAuth, requireRole('Owner'));
 
 const DECLINE_REASONS = ['Run out of water', 'Out of new gallons', 'Outside delivery area', 'Closed', 'Too many orders', 'Other'];
+const CANCEL_REASONS = ['Customer asked to cancel', 'Cannot reach customer', 'Out of stock', 'Other'];
 
 // Which orders each tab and filter shows. Delivered, declined, cancelled and "all" are today's;
 // Not delivered stays until the owner re-delivers or cancels it.
@@ -63,6 +65,7 @@ router.get('/riders', async (req, res) => {
   res.json({
     riders: [...rows.map((r) => ({ id: r.user_id, name: r.full_name, owner: false })), { id: req.user.user_id, name: 'Me (Owner)', owner: true }],
     reasons: DECLINE_REASONS,
+    cancelReasons: CANCEL_REASONS,
   });
 });
 
@@ -151,6 +154,80 @@ router.post('/:id/rider', async (req, res) => {
   });
   const fresh = await getOrder(o.order_id);
   res.json({ order: shapeOrder(fresh, await stationPoint()), message: 'Rider notified.' });
+});
+
+// POST /api/admin/orders/:id/cancel { reason, other } -> { order }
+// Cancel an accepted order (Processing) or a Not delivered one. Gallons already counted stay counted.
+router.post('/:id/cancel', async (req, res) => {
+  const o = await getOrder(req.params.id);
+  const b = req.body || {};
+  if (!CANCEL_REASONS.includes(b.reason)) throw bad('REASON_MISSING', 'Choose a reason', 'Pick why the order is cancelled.');
+  const reason = b.reason === 'Other' ? text(b.other, 150) : b.reason;
+  if (!reason) throw bad('REASON_MISSING', 'Type the reason', 'The customer sees this reason.', { field: 'other' });
+  await transaction(async (conn) => {
+    const [r] = await conn.query(
+      "UPDATE orders SET status = 'Cancelled' WHERE order_id = ? AND status IN ('New','Processing','Not Delivered')",
+      [o.order_id]
+    );
+    if (r.affectedRows !== 1) throw conflict('CANNOT_CANCEL', 'Cannot cancel', 'Only new, Processing or Not delivered orders can be cancelled.');
+    await addHistory(conn, o.order_id, 'Cancelled', req.user.user_id, reason);
+    await notifyCustomer(conn, o, { type: 'Order Cancelled', title: 'Order cancelled', message: reason });
+  });
+  const fresh = await getOrder(o.order_id);
+  res.json({ order: shapeOrder(fresh, await stationPoint()), message: 'Order cancelled. Customer notified.' });
+});
+
+// POST /api/admin/orders/:id/redeliver -> { order }  Not delivered -> back to Processing for the next
+// batch (same rider, can be changed); new delivery time; not counted again in the tank counter.
+router.post('/:id/redeliver', async (req, res) => {
+  const o = await getOrder(req.params.id);
+  const t = now();
+  const est = estimatedDelivery(t);
+  await transaction(async (conn) => {
+    const [r] = await conn.query(
+      "UPDATE orders SET status = 'Processing', batch_id = NULL, out_at = NULL, est_delivery_from = ?, est_delivery_to = ? WHERE order_id = ? AND status = 'Not Delivered'",
+      [est.from, est.to, o.order_id]
+    );
+    if (r.affectedRows !== 1) throw conflict('NOT_NOT_DELIVERED', 'Cannot re-deliver', 'Only Not delivered orders can be re-delivered.');
+    await addHistory(conn, o.order_id, 'Re-deliver', req.user.user_id, `Delivery ${deliveryText(est.from, est.to)}`, t);
+    await notifyCustomer(conn, o, {
+      type: 'Re-deliver',
+      title: 'We will deliver again',
+      message: `Your order is processing again. Estimated delivery: ${deliveryText(est.from, est.to)}.`,
+    });
+  });
+  const fresh = await getOrder(o.order_id);
+  res.json({ order: shapeOrder(fresh, await stationPoint()), message: 'Back to Processing.' });
+});
+
+// POST /api/admin/orders/:id/delivered { paid } and /not-delivered { note } (owner delivering, Admin Orders 6)
+router.post('/:id/delivered', async (req, res) => {
+  const o = await one('SELECT * FROM orders WHERE order_id = ?', [Number(req.params.id) || 0]);
+  if (!o) throw notFound('ORDER_NOT_FOUND', 'Order not found', 'It may have been removed.');
+  if (o.status !== 'Out for Delivery') throw conflict('NOT_OUT', 'Not out for delivery', 'Mark it Out for Delivery first.');
+  const r = await transaction((conn) => recordDelivered(conn, o, req.user.user_id, (req.body || {}).paid !== false));
+  res.json(r);
+});
+
+router.post('/:id/not-delivered', async (req, res) => {
+  const o = await one('SELECT * FROM orders WHERE order_id = ?', [Number(req.params.id) || 0]);
+  if (!o) throw notFound('ORDER_NOT_FOUND', 'Order not found', 'It may have been removed.');
+  if (o.status !== 'Out for Delivery') throw conflict('NOT_OUT', 'Not out for delivery', 'Mark it Out for Delivery first.');
+  const r = await transaction((conn) => recordNotDelivered(conn, o, req.user.user_id, text((req.body || {}).note, 200)));
+  res.json(r);
+});
+
+// POST /api/admin/orders/:id/paid -> { order }  Only the owner changes Unpaid to Paid (FR-08).
+router.post('/:id/paid', async (req, res) => {
+  const o = await getOrder(req.params.id);
+  const t = now();
+  await transaction(async (conn) => {
+    const [r] = await conn.query("UPDATE orders SET payment_status = 'Paid', paid_at = ? WHERE order_id = ? AND payment_status = 'Unpaid'", [t, o.order_id]);
+    if (r.affectedRows !== 1) throw conflict('NOT_UNPAID', 'Already paid', 'This order is not unpaid.');
+    await addHistory(conn, o.order_id, 'Marked paid', req.user.user_id, `P${Number(o.total_amount).toFixed(2)} received`, t);
+  });
+  const fresh = await getOrder(o.order_id);
+  res.json({ order: shapeOrder(fresh, await stationPoint()), message: 'Marked paid.' });
 });
 
 module.exports = router;

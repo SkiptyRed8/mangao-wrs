@@ -17,6 +17,12 @@ app.use('/api/geo', require('./routes/geo'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/admin/orders', require('./routes/admin-orders'));
+app.use('/api/admin/home', require('./routes/admin-home'));
+app.use('/api/work', require('./routes/work'));
+app.use('/api/rider', require('./routes/rider'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/sales', require('./routes/sales'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 app.use(notFoundRoute);
 app.use(errorHandler);
