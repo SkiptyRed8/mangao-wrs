@@ -8,7 +8,9 @@ import 'forgot_screens.dart';
 /// Login 1, 2: phone number and password; messages "Details wrong" and
 /// "Cannot log in until activated again", and Forgot password. After log in the app opens the role's Home.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Grey note at the top, e.g. "Session ends" after Log out.
+  final String? note;
+  const LoginScreen({super.key, this.note});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -53,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: const Text('Log in')),
       body: Body([
         if (_error != null) MsgBanner(_error!.title, sub: _error!.message),
+        if (_error == null && widget.note != null) Note(widget.note!),
         Field('Phone number', _phone, hint: '09XX XXX XXXX', kind: FieldKind.phone, action: TextInputAction.next),
         Field('Password', _password,
             hint: 'Password', kind: FieldKind.password, action: TextInputAction.done, onSubmitted: (_) => _login()),

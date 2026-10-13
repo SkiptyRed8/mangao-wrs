@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/api.dart';
 import '../theme/brand.dart';
 
 /// Opens a page on top of the current one.
@@ -157,7 +158,7 @@ class LinkText extends StatelessWidget {
       );
 }
 
-enum FieldKind { text, phone, email, password, number, name }
+enum FieldKind { text, phone, email, password, number, money, name }
 
 /// Text field with a grey label above it (wireframe style).
 class Field extends StatefulWidget {
@@ -213,6 +214,9 @@ class _FieldState extends State<Field> {
       case FieldKind.number:
         type = TextInputType.number;
         formatters = [FilteringTextInputFormatter.digitsOnly];
+      case FieldKind.money:
+        type = const TextInputType.numberWithOptions(decimal: true);
+        formatters = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')), LengthLimitingTextInputFormatter(9)];
       case FieldKind.name:
         type = TextInputType.name;
         autofill = const [AutofillHints.name];
@@ -240,6 +244,7 @@ class _FieldState extends State<Field> {
           onChanged: widget.onChanged,
           decoration: InputDecoration(
             hintText: widget.hint,
+            prefixText: k == FieldKind.money ? '₱ ' : null,
             fillColor: widget.enabled ? Colors.white : Brand.light,
             suffixIcon: password
                 ? IconButton(
@@ -588,4 +593,122 @@ class ComingSoonCard extends StatelessWidget {
           ),
         ]),
       );
+}
+
+/// Small outlined button inside a card header (Edit, Edit prices, Change).
+class SmallBtn extends StatelessWidget {
+  final String text;
+  final VoidCallback? onTap;
+  const SmallBtn(this.text, this.onTap, {super.key});
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 32),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Text(text),
+      );
+}
+
+/// Bottom-sheet form (Edit form, Password form, Price form...): fields, a message box for
+/// errors from the server, and a Save button. [onSave] returns the message shown after saving.
+/// Returns true when saved.
+Future<bool> formSheet(
+  BuildContext context,
+  String title, {
+  required List<Widget> Function(StateSetter set) fields,
+  required Future<String?> Function() onSave,
+  String button = 'Save',
+}) async {
+  ApiException? err;
+  var busy = false;
+  String? done;
+  final saved = await sheet<bool>(context, title, (c, set) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (err != null) MsgBanner(err!.title, sub: err!.message),
+      ...fields(set),
+      const SizedBox(height: 8),
+      Btn(button, () async {
+        FocusScope.of(c).unfocus();
+        set(() {
+          busy = true;
+          err = null;
+        });
+        try {
+          done = await onSave();
+          if (c.mounted) Navigator.pop(c, true);
+        } on ApiException catch (e) {
+          if (c.mounted) {
+            set(() {
+              err = e;
+              busy = false;
+            });
+          }
+        }
+      }, busy: busy),
+    ]);
+  });
+  if (saved == true && done != null && context.mounted) toast(context, done!);
+  return saved == true;
+}
+
+/// Shows a list or page that loads from the server: spinner, message with Try again, or the content.
+class Loader<T> extends StatefulWidget {
+  final Future<T> Function() load;
+  final Widget Function(BuildContext context, T data, Future<void> Function() reload) builder;
+  const Loader({super.key, required this.load, required this.builder});
+
+  @override
+  State<Loader<T>> createState() => LoaderState<T>();
+}
+
+class LoaderState<T> extends State<Loader<T>> {
+  T? _data;
+  ApiException? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    reload();
+  }
+
+  Future<void> reload() async {
+    try {
+      final d = await widget.load();
+      if (mounted) {
+        setState(() {
+          _data = d;
+          _error = null;
+          _loading = false;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading && _data == null) return const Center(child: CircularProgressIndicator());
+    if (_data == null) {
+      return Body([
+        MsgBanner(_error?.title ?? 'Something went wrong', sub: _error?.message),
+        Btn('Try again', () {
+          setState(() => _loading = true);
+          reload();
+        }, outline: true),
+      ]);
+    }
+    return RefreshIndicator(onRefresh: reload, child: widget.builder(context, _data as T, reload));
+  }
 }

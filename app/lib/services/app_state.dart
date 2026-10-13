@@ -134,8 +134,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set by Log out for the owner, staff and riders: Welcome then opens Log in with "Session ends"
+  /// (Admin More 5). Customers go back to Welcome (Customer 8).
+  bool sessionEnded = false;
+
+  /// After My Account > Edit: keeps the new name, phone and email.
+  Future<void> setUser(AppUser u) async {
+    final prefs = await SharedPreferences.getInstance();
+    user = u;
+    await prefs.setString(_kUser, jsonEncode(u.toJson()));
+    notifyListeners();
+  }
+
   /// Log out (or Exit guest mode, which also forgets the guest's orders on this phone).
   Future<void> logout() async {
+    sessionEnded = !guest && user != null && user!.role != Role.customer;
     final prefs = await SharedPreferences.getInstance();
     await _clear(prefs);
     if (guest) {

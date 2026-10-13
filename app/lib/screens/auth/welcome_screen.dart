@@ -23,6 +23,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   void initState() {
     super.initState();
     _check();
+    if (app.sessionEnded) {
+      app.sessionEnded = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) go(context, const LoginScreen(note: 'Session ends'));
+      });
+    }
   }
 
   Future<void> _check() async {

@@ -7,6 +7,8 @@ import '../widgets/common.dart';
 import '../widgets/watch.dart';
 import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
+import 'owner/settings_screen.dart';
+import 'owner/staff_screens.dart';
 
 class TabDef {
   final String label;
@@ -155,9 +157,9 @@ class OwnerMore extends StatelessWidget {
         RowLink('Customers', sub: 'Contacts, addresses, order history', icon: Icons.people_outline,
             onTap: () => go(context, const ComingSoon('Customers', step: 42, what: 'Customer list and records', pushed: true))),
         RowLink('Staff & Riders', sub: 'Add, edit, deactivate', icon: Icons.badge_outlined,
-            onTap: () => go(context, const ComingSoon('Staff & Riders', step: 10, what: 'Add, edit, deactivate, reset password', pushed: true))),
+            onTap: () => go(context, const StaffListScreen())),
         RowLink('Prices & Settings', sub: 'Prices, tank limit, low-stock levels, station location', icon: Icons.tune,
-            onTap: () => go(context, const ComingSoon('Prices & Settings', step: 12, what: 'Prices and station settings', pushed: true))),
+            onTap: () => go(context, const SettingsScreen())),
         RowLink('Notifications', sub: 'Alerts and preferences', icon: Icons.notifications_none,
             onTap: () => go(context, const ComingSoon('Notifications', step: 31, what: 'Alerts and preferences', pushed: true))),
         RowLink('My Account', sub: 'Profile, password, log out', icon: Icons.person_outline,
