@@ -17,7 +17,6 @@ app.use('/api/geo', require('./routes/geo'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/admin/orders', require('./routes/admin-orders'));
-app.use('/api/station', require('./routes/station'));
 app.use('/api/admin/home', require('./routes/admin-home'));
 app.use('/api/work', require('./routes/work'));
 app.use('/api/rider', require('./routes/rider'));

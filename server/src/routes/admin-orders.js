@@ -66,6 +66,7 @@ router.get('/riders', async (req, res) => {
     riders: [...rows.map((r) => ({ id: r.user_id, name: r.full_name, owner: false })), { id: req.user.user_id, name: 'Me (Owner)', owner: true }],
     reasons: DECLINE_REASONS,
     cancelReasons: CANCEL_REASONS,
+    cancelReasons: CANCEL_REASONS,
   });
 });
 

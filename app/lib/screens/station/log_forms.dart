@@ -53,7 +53,7 @@ class _LogWalkInScreenState extends State<LogWalkInScreen> {
       _error = null;
     });
     try {
-      final r = await app.api.post('/api/station/walk-in', {
+      final r = await app.api.post('/api/work/walk-in', {
         'quantity': _qty,
         'type': _type == 1 ? 'Package' : 'Refill',
         'paid': _paid == 0,
@@ -174,7 +174,7 @@ class _LogDeliveryScreenState extends State<LogDeliveryScreen> {
       _missing = {};
     });
     try {
-      final r = await app.api.post('/api/station/delivery', {
+      final r = await app.api.post('/api/work/delivery', {
         'name': _name.text,
         'phone': _phone.text,
         'address': _address.text,
