@@ -4,6 +4,7 @@ import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import '../common/loans.dart';
 import '../shell.dart';
 
 /// One line of the stock Entries list / Movement History.
@@ -76,7 +77,7 @@ class MovementRow extends StatelessWidget {
 }
 
 /// Admin Inventory 1: Stock Overview. Low-stock warning at the level set in Settings, New Gallons and
-/// Seals counts, Movement History, Borrowed Gallons (step 40).
+/// Seals counts, Movement History, Borrowed Gallons (Admin Inventory 5).
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
 
@@ -127,7 +128,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             _count('Seals', s, () => open('seals')),
             Btn('Movement History', () => go(context, const MovementHistoryScreen()), outline: true),
             const Gap(),
-            Btn('Borrowed Gallons', () => toast(context, 'Borrowed Gallons comes in step 40'), outline: true),
+            Btn('Borrowed Gallons', () => go(context, const BorrowedGallonsScreen()), outline: true),
           ]);
         },
       ),

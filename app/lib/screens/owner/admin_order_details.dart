@@ -10,6 +10,7 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
 import '../station/send_out.dart';
+import '../common/loans.dart';
 import 'order_actions.dart';
 import 'unpaid_accounts.dart';
 
@@ -242,6 +243,7 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
                       })
                     : null,
               ),
+            if (!['New', 'Declined', 'Cancelled'].contains(o.status)) OrderLoansBox(o),
             const Section('Status Timeline'),
             TimelineList(steps),
           ]),

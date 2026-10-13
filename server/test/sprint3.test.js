@@ -262,3 +262,54 @@ describe('Export Report (step 39)', () => {
     assert.equal((await as(staff, api().post('/api/export')).send({ report: 'daily', format: 'pdf' })).status, 403);
   });
 });
+
+describe('Borrowed gallons (step 40)', () => {
+  test('lend from an order and by name, part and full return, stock and movement history, timeline', async () => {
+    const stock = async () => (await one("SELECT quantity_on_hand AS n FROM inventory_items WHERE item_name = 'New Gallon'")).n;
+    const o = await one("SELECT order_id, customer_name FROM orders WHERE customer_name IS NOT NULL ORDER BY order_id LIMIT 1");
+    const s0 = await stock();
+
+    const lend = await as(staff, api().post('/api/loans')).send({ orderId: o.order_id, quantity: 3, note: 'Own gallons cracked' });
+    assert.equal(lend.status, 201, JSON.stringify(lend.body));
+    assert.equal(lend.body.loan.name, o.customer_name);
+    assert.equal(lend.body.loan.lentBy, 'Joy Ramos');
+    assert.equal(await stock(), s0 - 3);
+
+    const walk = await as(owner, api().post('/api/loans')).send({ name: 'Mang Ben', phone: '0918 777 1234', quantity: 1 });
+    assert.equal(walk.status, 201);
+    assert.equal(walk.body.loan.phone, '09187771234');
+    assert.equal(walk.body.loan.lentBy, 'Owner');
+
+    assert.equal((await as(owner, api().post('/api/loans')).send({ quantity: 1 })).body.error.title, 'Customer name missing');
+    assert.equal((await as(owner, api().post('/api/loans')).send({ name: 'X' })).body.error.title, 'Quantity missing');
+    assert.equal((await as(owner, api().post('/api/loans')).send({ name: 'X', quantity: 100 })).body.error.title, 'Not enough new gallons');
+    assert.equal((await as(rider, api().get('/api/loans'))).status, 403);
+
+    const list = await as(owner, api().get('/api/loans'));
+    assert.equal(list.body.gallonsOut, 4);
+    assert.equal(list.body.customersOut, 2);
+    const forOrder = await as(owner, api().get(`/api/loans?status=all&orderId=${o.order_id}`));
+    assert.equal(forOrder.body.loans.length, 1);
+    assert.equal((await as(owner, api().get('/api/loans?q=ben'))).body.loans.length, 1);
+
+    // Part return: 2 of 3 come back.
+    const part = await as(staff, api().post(`/api/loans/${lend.body.loan.id}/return`)).send({ quantity: 2 });
+    assert.equal(part.body.message, '2 returned. 1 still borrowed.');
+    assert.equal(await stock(), s0 - 3 - 1 + 2);
+    const after = await as(owner, api().get(`/api/loans?status=all&orderId=${o.order_id}`));
+    assert.deepEqual(after.body.loans.map((l) => [l.quantity, l.out]).sort(), [[1, true], [2, false]]);
+    assert.equal((await as(owner, api().post(`/api/loans/${lend.body.loan.id}/return`)).send({ quantity: 5 })).body.error.title, 'Quantity not valid');
+
+    // Return the rest (no quantity = all).
+    const rest = await as(owner, api().post(`/api/loans/${lend.body.loan.id}/return`)).send({});
+    assert.equal(rest.body.message, 'Returned. Stock goes up.');
+    assert.equal((await as(owner, api().post(`/api/loans/${lend.body.loan.id}/return`)).send({})).body.error.title, 'Already returned');
+
+    const moves = await as(owner, api().get('/api/inventory/movements?item=gallons'));
+    const types = moves.body.movements.slice(0, 4).map((m) => m.type);
+    assert.deepEqual(types.sort(), ['Lent', 'Lent', 'Returned', 'Returned']);
+    const tl = await as(owner, api().get(`/api/admin/orders/${o.order_id}`));
+    const steps = tl.body.timeline.map((t) => t.status);
+    assert.ok(steps.includes('Gallon lent') && steps.includes('Gallon returned'));
+  });
+});

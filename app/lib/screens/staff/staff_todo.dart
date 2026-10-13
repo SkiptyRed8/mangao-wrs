@@ -8,6 +8,7 @@ import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import '../common/loans.dart';
 import '../owner/order_board.dart';
 import '../shell.dart';
 import '../station/log_forms.dart';
@@ -74,6 +75,8 @@ class _StaffTodoState extends State<StaffTodo> {
                 TankCard.fromJson(d['tank'] as Map<String, dynamic>),
                 const Gap(10),
                 StationButtons(onSaved: _reload),
+                const Gap(8),
+                Btn('Borrowed Gallons', () => go(context, const BorrowedGallonsScreen()), outline: true, small: true, icon: Icons.swap_horiz),
                 const Gap(14),
                 Row(children: [
                   Expanded(child: Text('Processing (${list.length})', style: const TextStyle(fontWeight: FontWeight.w800))),
@@ -166,7 +169,9 @@ class _StaffOrderDetailsState extends State<StaffOrderDetails> {
                 KV('Phone', phoneFmt(o.phone), last: true),
               ]),
             ),
-            const Gap(14),
+            const Gap(10),
+            if (!['New', 'Declined', 'Cancelled'].contains(o.status)) OrderLoansBox(o),
+            const Gap(4),
             if (o.status == 'Processing') ...[
               Btn('Mark Out for Delivery', () async {
                 if (await sendOut(context, [o]) && context.mounted) Navigator.pop(context);
