@@ -30,7 +30,7 @@ class TankCard extends StatelessWidget {
       if (context.mounted) toast(context, (r['message'] ?? 'Counter = 0') as String);
       await onReset?.call();
     } on ApiException catch (e) {
-      if (context.mounted) toast(context, '${e.title}. ${e.message}');
+      if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     }
   }
 
@@ -89,7 +89,7 @@ class TankCard extends StatelessWidget {
       ),
       if (full && !owner) ...[
         const Gap(8),
-        const MsgBanner('Tell the owner: water tank needs refilling'),
+        const MsgBanner('Tell the owner: water tank needs refilling', info: true),
       ],
     ]);
   }

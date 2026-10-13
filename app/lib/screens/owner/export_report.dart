@@ -104,7 +104,7 @@ class _ExportReportState extends State<ExportReport> {
 
   Future<void> _download() async {
     final ok = await launchUrl(Uri.parse('${AppConfig.apiUrl}$_url'), mode: LaunchMode.externalApplication);
-    if (!ok && mounted) toast(context, 'Could not open the file');
+    if (!ok && mounted) toast(context, 'Could not open the file', error: true);
   }
 
   @override

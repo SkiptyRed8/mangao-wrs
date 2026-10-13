@@ -116,7 +116,7 @@ class _RiderDeliveriesState extends State<RiderDeliveries> {
           }
           return Body([
             MsgBanner(_gpsProblem ? 'Location Sharing: turn on location' : 'Location Sharing',
-                sub: _gpsNote ?? 'On while orders are out', red: _gpsProblem),
+                sub: _gpsNote ?? 'On while orders are out', info: !_gpsProblem),
             Row(children: [
               Expanded(child: Text('Out for Delivery (${orders.length})', style: const TextStyle(fontWeight: FontWeight.w800))),
               Text('Sent out ${(d['sentClock'] ?? '') as String}', style: const TextStyle(color: Brand.muted, fontSize: 12.5)),

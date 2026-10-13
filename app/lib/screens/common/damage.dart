@@ -52,7 +52,7 @@ class _DamageReportScreenState extends State<DamageReportScreen> {
         if (_error?.code == 'PHOTO_MISSING') _error = null;
       });
     } catch (_) {
-      if (mounted) toast(context, 'Could not open the camera. Choose a photo instead.');
+      if (mounted) toast(context, 'Could not open the camera. Choose a photo instead.', error: true);
     }
   }
 
@@ -95,10 +95,13 @@ class _DamageReportScreenState extends State<DamageReportScreen> {
         const Label('Photo'),
         const Gap(6),
         Material(
-          color: _error?.code == 'PHOTO_MISSING' ? Brand.light : Colors.white,
+          color: _error?.code == 'PHOTO_MISSING' ? Brand.redLight : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Brand.blue, width: _error?.code == 'PHOTO_MISSING' ? 2.2 : 1.2),
+            side: BorderSide(
+              color: _error?.code == 'PHOTO_MISSING' ? Brand.red : Brand.blue,
+              width: _error?.code == 'PHOTO_MISSING' ? 2 : 1.2,
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(

@@ -43,7 +43,7 @@ class _PinMapState extends State<PinMap> {
       widget.controller.move(here, 18);
       widget.onMoved(here);
     } catch (e) {
-      if (mounted) toast(context, e.toString().replaceFirst('Exception: ', ''));
+      if (mounted) toast(context, e.toString().replaceFirst('Exception: ', ''), error: true);
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -163,14 +163,14 @@ class PinView extends StatelessWidget {
 Future<void> openInMaps(BuildContext context, {double? lat, double? lng, String address = ''}) async {
   final q = lat != null && lng != null ? '$lat,$lng' : Uri.encodeComponent('$address, Quezon City');
   final ok = await launchUrl(Uri.parse('https://www.google.com/maps/search/?api=1&query=$q'), mode: LaunchMode.externalApplication);
-  if (!ok && context.mounted) toast(context, 'Could not open Google Maps');
+  if (!ok && context.mounted) toast(context, 'Could not open Google Maps', error: true);
 }
 
 /// Opens the phone dialer (Call station, tap a phone number).
 Future<void> callNumber(BuildContext context, String phone) async {
   final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
   if (digits.isEmpty) {
-    toast(context, 'No phone number saved');
+    toast(context, 'No phone number saved', error: true);
     return;
   }
   final ok = await launchUrl(Uri.parse('tel:$digits'));

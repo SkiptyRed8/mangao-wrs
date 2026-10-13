@@ -106,7 +106,7 @@ Future<bool> recordDelivered(BuildContext context, Order o, {String path = '/api
     if (context.mounted) toast(context, (r['message'] ?? 'Delivered.') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }

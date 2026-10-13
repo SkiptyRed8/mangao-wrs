@@ -200,6 +200,7 @@ class _OrderBoardState extends State<OrderBoard> {
             MsgBanner(
               '${_count('notDelivered')} not delivered',
               sub: 'Re-deliver or cancel them. Open Filter > Not delivered.',
+              info: true,
               action: TextButton(
                 onPressed: () => _open('not-delivered'),
                 child: const Text('Open', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),

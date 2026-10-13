@@ -42,7 +42,7 @@ Future<bool> acceptOrders(BuildContext context, List<Order> orders) async {
   try {
     riders = (await loadRiders()).$1;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, e.message);
+    if (context.mounted) toast(context, e.message, error: true);
     return false;
   }
   if (!context.mounted) return false;
@@ -111,7 +111,7 @@ Future<bool> declineOrder(BuildContext context, Order o) async {
   try {
     reasons = (await loadRiders()).$2;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, e.message);
+    if (context.mounted) toast(context, e.message, error: true);
     return false;
   }
   if (!context.mounted) return false;
@@ -135,7 +135,7 @@ Future<bool> declineOrder(BuildContext context, Order o) async {
     if (context.mounted) toast(context, (r['message'] ?? 'Declined') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }
@@ -146,7 +146,7 @@ Future<bool> changeRider(BuildContext context, Order o) async {
   try {
     riders = (await loadRiders()).$1;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, e.message);
+    if (context.mounted) toast(context, e.message, error: true);
     return false;
   }
   if (!context.mounted) return false;
@@ -189,7 +189,7 @@ Future<bool> changeRider(BuildContext context, Order o) async {
     if (context.mounted) toast(context, (r['message'] ?? 'Rider changed') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }
@@ -202,7 +202,7 @@ Future<bool> cancelOrder(BuildContext context, Order o) async {
     final r = await app.api.get('/api/admin/orders/riders');
     reasons = [for (final x in (r['cancelReasons'] ?? const ['Other']) as List) x as String];
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, e.message);
+    if (context.mounted) toast(context, e.message, error: true);
     return false;
   }
   if (!context.mounted) return false;
@@ -226,7 +226,7 @@ Future<bool> cancelOrder(BuildContext context, Order o) async {
     if (context.mounted) toast(context, (r['message'] ?? 'Order cancelled') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }
@@ -241,7 +241,7 @@ Future<bool> redeliverOrder(BuildContext context, Order o) async {
     if (context.mounted) toast(context, (r['message'] ?? 'Back to Processing.') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }
@@ -255,7 +255,7 @@ Future<bool> markPaid(BuildContext context, Order o) async {
     if (context.mounted) toast(context, (r['message'] ?? 'Marked paid.') as String);
     return true;
   } on ApiException catch (e) {
-    if (context.mounted) toast(context, '${e.title}. ${e.message}');
+    if (context.mounted) toast(context, '${e.title}. ${e.message}', error: true);
     return false;
   }
 }

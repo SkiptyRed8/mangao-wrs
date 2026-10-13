@@ -246,10 +246,13 @@ class _OrderFormState extends State<OrderForm> {
               const Label('Delivery address'),
               const Gap(6),
               Material(
-                color: _error?.code == 'ADDRESS_MISSING' ? Brand.light : Colors.white,
+                color: _error?.code == 'ADDRESS_MISSING' ? Brand.redLight : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Brand.blue, width: _error?.code == 'ADDRESS_MISSING' ? 2.2 : 1.2),
+                  side: BorderSide(
+                    color: _error?.code == 'ADDRESS_MISSING' ? Brand.red : Brand.blue,
+                    width: _error?.code == 'ADDRESS_MISSING' ? 2 : 1.2,
+                  ),
                 ),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),

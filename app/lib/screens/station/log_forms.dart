@@ -201,8 +201,7 @@ class _LogDeliveryScreenState extends State<LogDeliveryScreen> {
     if (ok && mounted) Navigator.pop(context);
   }
 
-  Widget _mark(String f, Widget child) =>
-      _missing.contains(f) ? DecoratedBox(decoration: BoxDecoration(color: const Color(0xFFEAF4FD), borderRadius: BorderRadius.circular(12)), child: child) : child;
+  Widget _mark(String f, Widget child) => ErrorWrap(_missing.contains(f), child);
 
   @override
   Widget build(BuildContext context) {

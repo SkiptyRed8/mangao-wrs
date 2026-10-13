@@ -4,6 +4,25 @@
 
 module.exports = [
   {
+    n: 'E',
+    title: 'Error messages in red (all screens)',
+    screens: 'Every form',
+    as: 'Any account',
+    before: 'Errors are red text with a red border on a light red box. Notices that are not errors (tank alert, "not delivered" reminder, rider Location Sharing when on) stay blue.',
+    cases: [
+      ['Log in with a wrong password.', 'Red box "Details wrong / Check your phone number and password" with a red ! icon; the Phone number and Password boxes get red borders.'],
+      ['Sign up with a phone number that is already used.', 'Red message box; the Phone number field has a red border around it.'],
+      ['Sign up without ticking the Terms box.', 'Red message box; the Terms row has a red border.'],
+      ['Order Form: Place order with no address.', 'Red message box; the Delivery address box has a red border.'],
+      ['Saved address > Type address: Save with an empty street and no barangay.', 'Red message box; Street and Barangay have red borders.'],
+      ['Log Walk-in: Save with 0 gallons.', 'Red message box; the gallons box has a red border.'],
+      ['Report damaged gallon: Send with no photo.', 'Red message box; the photo box has a red border.'],
+      ['Stop the server window, then pull down to refresh any list.', 'Red box with the message and a Try again button.'],
+      ['Do an action that fails from a button (e.g. Mark paid on an order that was already paid in another window).', 'The message at the bottom is red text with a red border (not the blue bar).'],
+      ['Tank at 60 alert (staff To Do) and the "N not delivered" box on the Order Board.', 'Still blue (they are reminders, not errors).'],
+    ],
+  },
+  {
     n: 10,
     title: 'Staff & Riders',
     screens: 'Admin More 2',

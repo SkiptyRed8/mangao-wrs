@@ -161,7 +161,7 @@ class _UnpaidCustomerState extends State<UnpaidCustomer> {
       await app.api.post('/api/admin/orders/${o['id']}/paid');
       if (mounted) toast(context, 'Marked paid. Total owed updated.');
     } on ApiException catch (e) {
-      if (mounted) toast(context, '${e.title}. ${e.message}');
+      if (mounted) toast(context, '${e.title}. ${e.message}', error: true);
     }
     await _loader.currentState?.reload();
   }

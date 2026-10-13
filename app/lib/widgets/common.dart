@@ -11,11 +11,18 @@ Future<T?> go<T>(BuildContext context, Widget page) =>
 /// Back to the first page (after log in / log out the first page shows the right screen).
 void toRoot(BuildContext context) => Navigator.of(context).popUntil((r) => r.isFirst);
 
-/// Short message at the bottom of the screen.
-void toast(BuildContext context, String msg) {
+/// Short message at the bottom of the screen. [error] shows it in red text with a red border.
+void toast(BuildContext context, String msg, {bool error = false}) {
   final m = ScaffoldMessenger.of(context);
   m.hideCurrentSnackBar();
-  m.showSnackBar(SnackBar(content: Text(msg, textAlign: TextAlign.center), duration: const Duration(seconds: 3)));
+  m.showSnackBar(error
+      ? SnackBar(
+          content: Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Brand.red, fontWeight: FontWeight.w700)),
+          backgroundColor: Brand.redLight,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Brand.red, width: 1.4)),
+          duration: const Duration(seconds: 4),
+        )
+      : SnackBar(content: Text(msg, textAlign: TextAlign.center), duration: const Duration(seconds: 3)));
 }
 
 /// Card with the blue border.
@@ -172,6 +179,9 @@ class Field extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onChanged;
   final bool enabled;
+
+  /// Red border: this field is missing or wrong.
+  final bool error;
   const Field(
     this.label,
     this.controller, {
@@ -184,6 +194,7 @@ class Field extends StatefulWidget {
     this.onSubmitted,
     this.onChanged,
     this.enabled = true,
+    this.error = false,
   });
 
   @override
@@ -245,7 +256,13 @@ class _FieldState extends State<Field> {
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixText: k == FieldKind.money ? '₱ ' : null,
-            fillColor: widget.enabled ? Colors.white : Brand.light,
+            fillColor: widget.error ? Brand.redLight : (widget.enabled ? Colors.white : Brand.light),
+            enabledBorder: widget.error
+                ? OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Brand.red, width: 1.6))
+                : null,
+            focusedBorder: widget.error
+                ? OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Brand.red, width: 2.2))
+                : null,
             suffixIcon: password
                 ? IconButton(
                     tooltip: _hidden ? 'Show password' : 'Hide password',
@@ -305,32 +322,63 @@ class Seg extends StatelessWidget {
 
 /// Message box at the top of a form: a bold title and one line under it
 /// (wireframe "Details wrong / Check your phone number and password").
+/// Errors (the default) are red text with a red border on a light red fill.
+/// [info] is for notices that are not errors (blue box with white text).
 class MsgBanner extends StatelessWidget {
   final String title;
   final String? sub;
   final Widget? action;
-  final bool red;
-  const MsgBanner(this.title, {super.key, this.sub, this.action, this.red = false});
+  final bool info;
+  const MsgBanner(this.title, {super.key, this.sub, this.action, this.info = false});
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        liveRegion: true,
-        child: Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: red ? Brand.red : Brand.blue, borderRadius: BorderRadius.circular(10)),
-          child: Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                if (sub != null && sub!.isNotEmpty) Text(sub!, style: const TextStyle(color: Colors.white, fontSize: 12.5)),
-              ]),
-            ),
-            if (action != null) action!,
-          ]),
+  Widget build(BuildContext context) {
+    final text = info ? Colors.white : Brand.red;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: info ? Brand.blue : Brand.redLight,
+          borderRadius: BorderRadius.circular(10),
+          border: info ? null : Border.all(color: Brand.red, width: 1.4),
         ),
-      );
+        child: Row(children: [
+          if (!info) ...[const Icon(Icons.error_outline, color: Brand.red, size: 22), const SizedBox(width: 10)],
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: TextStyle(color: text, fontWeight: FontWeight.w800)),
+              if (sub != null && sub!.isNotEmpty) Text(sub!, style: TextStyle(color: text, fontSize: 12.5)),
+            ]),
+          ),
+          if (action != null) action!,
+        ]),
+      ),
+    );
+  }
+}
+
+/// Red border and light red fill around a field the server says is missing or wrong.
+class ErrorWrap extends StatelessWidget {
+  final bool on;
+  final Widget child;
+  const ErrorWrap(this.on, this.child, {super.key});
+
+  @override
+  Widget build(BuildContext context) => on
+      ? Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+          decoration: BoxDecoration(
+            color: Brand.redLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Brand.red, width: 1.4),
+          ),
+          child: child,
+        )
+      : child;
 }
 
 /// Light note box (e.g. "Orders kept on this phone only").
@@ -739,8 +787,8 @@ class QtyStepper extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: highlight ? Brand.light : Colors.white,
-          border: Border.all(color: Brand.blue, width: highlight ? 2.2 : 1.2),
+          color: highlight ? Brand.redLight : Colors.white,
+          border: Border.all(color: highlight ? Brand.red : Brand.blue, width: highlight ? 2 : 1.2),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [

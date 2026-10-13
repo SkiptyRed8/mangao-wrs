@@ -61,7 +61,7 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
       final r = await app.api.post('/api/orders/${o.id}/cancel');
       if (mounted) toast(context, (r['message'] ?? 'Order cancelled') as String);
     } on ApiException catch (e) {
-      if (mounted) toast(context, '${e.title}. ${e.message}');
+      if (mounted) toast(context, '${e.title}. ${e.message}', error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
       await _loader.currentState?.reload();

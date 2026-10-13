@@ -49,6 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Wrong phone number or password, or a field left empty (not for server or network problems).
+  bool get _wrongDetails => _error != null && _error!.status >= 400 && _error!.status < 500;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,9 +59,14 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Body([
         if (_error != null) MsgBanner(_error!.title, sub: _error!.message),
         if (_error == null && widget.note != null) Note(widget.note!),
-        Field('Phone number', _phone, hint: '09XX XXX XXXX', kind: FieldKind.phone, action: TextInputAction.next),
+        Field('Phone number', _phone,
+            hint: '09XX XXX XXXX', kind: FieldKind.phone, action: TextInputAction.next, error: _wrongDetails),
         Field('Password', _password,
-            hint: 'Password', kind: FieldKind.password, action: TextInputAction.done, onSubmitted: (_) => _login()),
+            hint: 'Password',
+            kind: FieldKind.password,
+            action: TextInputAction.done,
+            onSubmitted: (_) => _login(),
+            error: _wrongDetails),
         const Gap(8),
         Btn('Log in', _login, busy: _busy),
         const Gap(10),

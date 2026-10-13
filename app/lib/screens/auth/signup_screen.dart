@@ -126,13 +126,8 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  /// Thicker border on the field the message is about (wireframe 3A).
-  Widget _mark(String field, Widget child) => _errorField == field
-      ? DecoratedBox(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Brand.light),
-          child: Padding(padding: const EdgeInsets.fromLTRB(6, 6, 6, 0), child: child),
-        )
-      : child;
+  /// Red border on the field the message is about (wireframe 3A).
+  Widget _mark(String field, Widget child) => ErrorWrap(_errorField == field, child);
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +159,7 @@ class _SignupScreenState extends State<SignupScreen> {
         Container(
           padding: consentWrong ? const EdgeInsets.all(6) : EdgeInsets.zero,
           decoration: consentWrong
-              ? BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Brand.blue, width: 2))
+              ? BoxDecoration(borderRadius: BorderRadius.circular(10), color: Brand.redLight, border: Border.all(color: Brand.red, width: 1.6))
               : null,
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Checkbox(

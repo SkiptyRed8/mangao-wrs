@@ -204,7 +204,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> {
       final msg = await call();
       if (mounted && msg != null) toast(context, msg);
     } on Exception catch (e) {
-      if (mounted) toast(context, e.toString());
+      if (mounted) toast(context, e.toString(), error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

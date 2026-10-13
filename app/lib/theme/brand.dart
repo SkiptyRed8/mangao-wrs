@@ -8,7 +8,8 @@ class Brand {
   static const soft = Color(0xFFCFE6FA); // thin dividers inside cards
   static const ink = Color(0xFF15202B); // main text
   static const muted = Color(0xFF64707C); // secondary text
-  static const red = Color(0xFFD03A3A); // only for declined / cancelled
+  static const red = Color(0xFFD03A3A); // error messages, missing fields, declined / cancelled
+  static const redLight = Color(0xFFFDEDED); // light fill behind error messages and missing fields
   static const white = Colors.white;
 }
 
@@ -16,6 +17,9 @@ const _r10 = BorderRadius.all(Radius.circular(10));
 
 OutlineInputBorder _border(double width) =>
     OutlineInputBorder(borderRadius: _r10, borderSide: BorderSide(color: Brand.blue, width: width));
+
+OutlineInputBorder _errBorder(double width) =>
+    OutlineInputBorder(borderRadius: _r10, borderSide: BorderSide(color: Brand.red, width: width));
 
 /// The Material theme used by every screen.
 ThemeData buildTheme() {
@@ -68,8 +72,9 @@ ThemeData buildTheme() {
       border: _border(1.2),
       enabledBorder: _border(1.2),
       focusedBorder: _border(2),
-      errorBorder: _border(1.2),
-      focusedErrorBorder: _border(2),
+      errorBorder: _errBorder(1.4),
+      focusedErrorBorder: _errBorder(2),
+      errorStyle: const TextStyle(color: Brand.red, fontWeight: FontWeight.w600),
     ),
     checkboxTheme: CheckboxThemeData(
       side: const BorderSide(color: Brand.blue, width: 1.5),

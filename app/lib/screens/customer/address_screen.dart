@@ -125,7 +125,7 @@ class _AddressScreenState extends State<AddressScreen> {
       setState(() => _results = list);
       if (list.isEmpty) toast(context, 'No place found in Quezon City. Move the map instead.');
     } on ApiException catch (e) {
-      if (mounted) toast(context, e.message);
+      if (mounted) toast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -333,16 +333,14 @@ class _AddressScreenState extends State<AddressScreen> {
     ]);
   }
 
-  BoxDecoration? _missingBox(String f) =>
-      _missing.contains(f) ? BoxDecoration(color: Brand.light, borderRadius: BorderRadius.circular(12)) : null;
 
   Widget _typedTab() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Container(decoration: _missingBox('house'), child: Field('House / unit no.', _house, hint: 'e.g. 12'))),
+          Expanded(child: Field('House / unit no.', _house, hint: 'e.g. 12', error: _missing.contains('house'))),
           const Gap(10),
           Expanded(child: Field('Block / Lot (optional)', _blockLot, hint: 'e.g. Blk 2 Lot 5')),
         ]),
-        Container(decoration: _missingBox('street'), child: Field('Street', _street, hint: 'e.g. Sampaguita St.')),
+        Field('Street', _street, hint: 'e.g. Sampaguita St.', error: _missing.contains('street')),
         const Label('Barangay'),
         const Gap(5),
         InkWell(
@@ -351,10 +349,10 @@ class _AddressScreenState extends State<AddressScreen> {
           child: InputDecorator(
             decoration: InputDecoration(
               suffixIcon: const Icon(Icons.expand_more, color: Brand.blue),
-              fillColor: _missing.contains('barangay') ? Brand.light : Colors.white,
+              fillColor: _missing.contains('barangay') ? Brand.redLight : Colors.white,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Brand.blue, width: _missing.contains('barangay') ? 2.2 : 1.2),
+                borderSide: BorderSide(color: _missing.contains('barangay') ? Brand.red : Brand.blue, width: _missing.contains('barangay') ? 2 : 1.2),
               ),
             ),
             child: Text(_barangay.isEmpty ? 'Choose barangay' : _barangay,

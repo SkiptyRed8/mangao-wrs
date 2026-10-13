@@ -169,7 +169,7 @@ class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => item['enabled'] = !on);
-        toast(context, e.toString());
+        toast(context, e.toString(), error: true);
       }
     }
   }
