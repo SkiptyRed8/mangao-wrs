@@ -8,6 +8,7 @@ import '../widgets/watch.dart';
 import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
 import 'customer/customer_home.dart';
+import 'owner/inventory.dart';
 import 'owner/order_board.dart';
 import 'owner/owner_home.dart';
 import 'rider/deliveries.dart';
@@ -34,8 +35,7 @@ class Shell extends StatelessWidget {
         return const [
           TabDef('Home', Icons.home_outlined, Icons.home, OwnerHome()),
           TabDef('Orders', Icons.receipt_long_outlined, Icons.receipt_long, OrderBoard()),
-          TabDef('Inventory', Icons.inventory_2_outlined, Icons.inventory_2,
-              ComingSoon('Inventory', step: 26, what: 'Stock overview, new gallons, seals, movement history, borrowed gallons')),
+          TabDef('Inventory', Icons.inventory_2_outlined, Icons.inventory_2, InventoryScreen()),
           TabDef('Sales', Icons.bar_chart_outlined, Icons.bar_chart,
               ComingSoon('Sales', step: 29, what: 'Daily and weekly sales, unpaid accounts, export')),
           TabDef('More', Icons.more_horiz, Icons.more_horiz, OwnerMore()),
