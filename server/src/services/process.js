@@ -99,7 +99,7 @@ async function recordDelivered(conn, order, userId, paid) {
   await notifyCustomer(conn, order, {
     type: 'Delivered',
     title: 'Delivered',
-    message: status === 'Unpaid' ? `Your order was delivered. Amount owed: ${peso(order.total_amount)}.` : 'Your order was delivered. Thank you!',
+    message: status === 'Unpaid' ? `Thank you! Amount owed: ${peso(order.total_amount)}.` : 'Thank you! Enjoy your fresh water.',
   });
   const batchDone = await finishBatchIfDone(conn, order.batch_id, t);
   let message = already ? 'Delivered.' : status === 'Paid' ? 'Delivered. Paid.' : `Delivered; customer owes ${peso(order.total_amount)}`;
@@ -122,7 +122,7 @@ async function recordNotDelivered(conn, order, userId, note) {
   await notifyCustomer(conn, order, {
     type: 'Not Delivered',
     title: 'Not delivered',
-    message: 'The station will contact you to deliver again or cancel.',
+    message: `${note ? `${note}. ` : ''}The station will contact you.`,
   });
   const batchDone = await finishBatchIfDone(conn, order.batch_id, t);
   return { message: batchDone ? 'Owner and customer notified. Location sharing off.' : 'Owner and customer notified', batchDone };

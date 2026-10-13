@@ -105,3 +105,32 @@ describe('Real-time updates (step 35)', () => {
     }
   });
 });
+
+describe('Push notifications and alert preferences (step 36)', () => {
+  test('owner turns an alert off and on; phones register for push', async () => {
+    const list = await as(owner, api().get('/api/notifications/preferences'));
+    assert.equal(list.status, 200);
+    assert.deepEqual(list.body.items.slice(0, 1), [{ type: 'New Order', label: 'New orders', enabled: true }]);
+    assert.equal(list.body.push, false, 'Firebase not set up in tests');
+    assert.equal((await as(staff, api().get('/api/notifications/preferences'))).status, 403);
+
+    const off = await as(owner, api().put('/api/notifications/preferences')).send({ type: 'New Order', enabled: false });
+    assert.equal(off.body.message, 'Saved. Takes effect right away.');
+    const before = await one("SELECT COUNT(*) AS n FROM notifications WHERE user_id = 1 AND notification_type = 'New Order'");
+    await as(ana, api().post('/api/orders')).send({ type: 'Refill', quantity: 1, address: typed });
+    const after = await one("SELECT COUNT(*) AS n FROM notifications WHERE user_id = 1 AND notification_type = 'New Order'");
+    assert.equal(after.n, before.n, 'no alert while turned off');
+    await as(owner, api().put('/api/notifications/preferences')).send({ type: 'New Order', enabled: true });
+    await as(ana, api().post('/api/orders')).send({ type: 'Refill', quantity: 1, address: typed });
+    const again = await one("SELECT COUNT(*) AS n FROM notifications WHERE user_id = 1 AND notification_type = 'New Order'");
+    assert.equal(again.n, after.n + 1);
+
+    const dev = await as(ana, api().post('/api/notifications/device')).send({ token: 'fcm-token-'.padEnd(40, 'x'), platform: 'android' });
+    assert.equal(dev.body.ok, true);
+    const g = await api().post('/api/notifications/device').set('X-Guest-Token', GUEST).send({ token: 'fcm-guest-'.padEnd(40, 'y') });
+    assert.equal(g.body.ok, true);
+    const rows = await query('SELECT user_id, guest_token FROM device_tokens ORDER BY token_id');
+    assert.equal(rows.length, 2);
+    assert.equal(rows[1].guest_token, GUEST);
+  });
+});

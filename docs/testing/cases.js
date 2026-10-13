@@ -425,4 +425,23 @@ module.exports = [
       ['Stop the server window for a few seconds and start it again.', 'The app reconnects by itself; updates work again (screens also check every minute).'],
     ],
   },
+  {
+    n: 36,
+    title: 'Push notifications and alert preferences',
+    screens: 'Customer 11, Admin More 4',
+    as: 'Customer and Owner',
+    before: 'In Chrome these come as banners at the bottom of the app. Phone push (app closed) needs the Firebase project on the server; see the backend notes.',
+    cases: [
+      ['Customer keeps the app open. Owner accepts the order.', 'Banner "Mangao Water Refilling Station · Order accepted · Your refill order is processing. Estimated delivery: by ..." with View.'],
+      ['Tap View.', 'Opens that order\'s Order Details.'],
+      ['Owner declines another order with "The station is closed for today."', 'Customer banner "Order declined · The station is closed for today."'],
+      ['Staff sends the order out.', 'Customer banner "Out for delivery · Your rider is on the way." (or "...handling multiple orders.").'],
+      ['Rider records Delivered (Paid).', 'Customer banner "Delivered · Thank you! Enjoy your fresh water."'],
+      ['Rider records Not delivered with note "Not home".', 'Customer banner "Not delivered · Not home. The station will contact you."'],
+      ['Owner: bell > Preferences.', 'List with switches: New orders, Orders logged by staff, Cancelled orders, Not delivered, Tank at 60, Low stock, Damaged gallon; note about phone push.'],
+      ['Turn off New orders.', 'Message "Saved. Takes effect right away."'],
+      ['Customer places an order.', 'The owner gets NO "New order" alert or banner. (The order still shows on the Order Board.)'],
+      ['Turn New orders back on; customer orders again.', 'The owner gets the alert again.'],
+    ],
+  },
 ];

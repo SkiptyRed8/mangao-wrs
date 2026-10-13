@@ -11,7 +11,7 @@ import '../owner/admin_order_details.dart';
 
 /// Admin More 4: Notifications. Alerts (newest first): new orders, orders logged by staff, cancelled
 /// and not delivered orders, tank at 60, low stock. A dot marks the unread ones; tapping an order alert
-/// opens Order Details. Preferences come in step 36.
+/// opens Order Details. Preferences: which alerts to receive.
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -78,7 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           final unread = (d['unread'] as num).toInt();
           return Body([
             Seg(const ['Alerts', 'Preferences'], 0, (i) {
-              if (i == 1) toast(context, 'Notification preferences come in step 36');
+              if (i == 1) go(context, const AlertPreferencesScreen());
             }),
             const Gap(10),
             Row(children: [
@@ -125,5 +125,86 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final t = iso == null ? null : DateTime.tryParse(iso);
     final day = dayPh(t);
     return day == 'Today' ? clockPh(t) : day;
+  }
+}
+
+/// Admin More 4: Preferences. Which alerts the owner receives (in the app and, with Firebase, on the phone).
+class AlertPreferencesScreen extends StatefulWidget {
+  const AlertPreferencesScreen({super.key});
+
+  @override
+  State<AlertPreferencesScreen> createState() => _AlertPreferencesScreenState();
+}
+
+class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
+  List<Map<String, dynamic>>? _items;
+  bool _push = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await app.api.get('/api/notifications/preferences');
+      if (mounted) {
+        setState(() {
+          _items = [for (final x in r['items'] as List) Map<String, dynamic>.from(x as Map)];
+          _push = r['push'] == true;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _set(Map<String, dynamic> item, bool on) async {
+    setState(() => item['enabled'] = on);
+    try {
+      final r = await app.api.put('/api/notifications/preferences', {'type': item['type'], 'enabled': on});
+      if (mounted) toast(context, (r['message'] ?? 'Saved') as String);
+    } catch (e) {
+      if (mounted) {
+        setState(() => item['enabled'] = !on);
+        toast(context, e.toString());
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _items;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notifications')),
+      body: Body([
+        Seg(const ['Alerts', 'Preferences'], 1, (i) {
+          if (i == 0) Navigator.pop(context);
+        }),
+        const Gap(12),
+        const Label('Which alerts to receive'),
+        const Gap(8),
+        if (_error != null) MsgBanner('Could not load', sub: _error),
+        if (items == null && _error == null) const LinearProgressIndicator(),
+        if (items != null)
+          for (final it in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Box(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                child: Row(children: [
+                  Expanded(child: Text(it['label'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15))),
+                  Switch(value: it['enabled'] == true, onChanged: (v) => _set(it, v)),
+                ]),
+              ),
+            ),
+        const Gap(6),
+        Note(_push
+            ? 'Phone push is on: alerts also come to the phone when the app is closed.'
+            : 'Alerts show in the app (bell and banner). Phone push starts when the Firebase project is added to the server.'),
+      ]),
+    );
   }
 }

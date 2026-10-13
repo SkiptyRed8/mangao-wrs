@@ -69,9 +69,14 @@ async function notify(conn, { userId = null, guestToken = null, orderId = null, 
   require('./push').send({ userId, guestToken, title, message, type, orderId });
 }
 
-/** Notifies the owner (all Owner accounts). */
+/** Notifies the owner (all Owner accounts), unless the owner turned that alert off in Preferences. */
 async function notifyOwner(conn, n) {
-  const [owners] = await conn.query("SELECT user_id FROM users WHERE role = 'Owner' AND is_active = 1");
+  const [owners] = await conn.query(
+    `SELECT u.user_id FROM users u
+     LEFT JOIN notification_preferences p ON p.user_id = u.user_id AND p.notification_type = ?
+     WHERE u.role = 'Owner' AND u.is_active = 1 AND COALESCE(p.is_enabled, 1) = 1`,
+    [n.type]
+  );
   for (const o of owners) await notify(conn, { ...n, userId: o.user_id });
 }
 
