@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../models/order.dart';
 import '../../services/api.dart';
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -26,6 +29,7 @@ class CustomerOrderDetails extends StatefulWidget {
 class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
   bool _busy = false;
 
   static const steps = ['Waiting for order to be accepted', 'Order accepted', 'Processing', 'Out for Delivery', 'Delivered'];
@@ -33,12 +37,14 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loader.currentState?.reload());
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _loader.currentState?.reload());
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'order', 'location'});
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 
@@ -127,7 +133,7 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
                 ],
                 if (o.status == 'Out for Delivery') ...[
                   const Gap(10),
-                  const ComingSoonCard(step: 34, what: "Live map with the rider's location"),
+                  RiderMap(order: o, rider: d['rider'] as Map<String, dynamic>?),
                 ],
                 if (o.status == 'Declined') ...[
                   const Gap(10),
@@ -222,6 +228,54 @@ class StatusSteps extends StatelessWidget {
             ),
           ]),
         ),
+    ]);
+  }
+}
+
+/// Customer 5 / 11: live map with the rider (blue dot) and the delivery pin while Out for Delivery.
+class RiderMap extends StatelessWidget {
+  final Order order;
+  final Map<String, dynamic>? rider;
+  const RiderMap({super.key, required this.order, this.rider});
+
+  @override
+  Widget build(BuildContext context) {
+    final home = order.lat != null ? LatLng(order.lat!, order.lng!) : null;
+    final r = rider == null ? null : LatLng((rider!['lat'] as num).toDouble(), (rider!['lng'] as num).toDouble());
+    final center = r ?? home ?? qcStart;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (r == null)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 6),
+          child: Text("Waiting for the rider's location...", style: TextStyle(color: Brand.muted, fontSize: 12.5)),
+        ),
+      SizedBox(
+        height: 210,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: FlutterMap(
+            key: ValueKey('${r?.latitude},${r?.longitude}'),
+            options: MapOptions(initialCenter: center, initialZoom: 15),
+            children: [
+              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.mangao.mangao_wrs'),
+              MarkerLayer(markers: [
+                if (home != null)
+                  Marker(point: home, width: 36, height: 36, alignment: Alignment.topCenter, child: const Icon(Icons.location_on, color: Brand.ink, size: 36)),
+                if (r != null)
+                  Marker(
+                    point: r,
+                    width: 26,
+                    height: 26,
+                    child: Container(
+                      decoration: BoxDecoration(color: Brand.blue, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
+                    ),
+                  ),
+              ]),
+              const SimpleAttributionWidget(source: Text('OpenStreetMap contributors')),
+            ],
+          ),
+        ),
+      ),
     ]);
   }
 }

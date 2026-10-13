@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../models/user.dart';
 import '../services/app_state.dart';
+import '../services/realtime.dart';
 import '../theme/brand.dart';
 import '../widgets/common.dart';
 import '../widgets/watch.dart';
 import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
 import 'common/done_today.dart';
+import 'common/live_map.dart';
 import 'common/notifications.dart';
 import 'customer/customer_home.dart';
 import 'customer/my_orders.dart';
@@ -48,8 +50,7 @@ class Shell extends StatelessWidget {
       case Role.staff:
         return const [
           TabDef('To Do', Icons.assignment_outlined, Icons.assignment, StaffTodo()),
-          TabDef('Live Map', Icons.location_on_outlined, Icons.location_on,
-              ComingSoon('Live Map', step: 34, what: 'Rider location and order pins')),
+          TabDef('Live Map', Icons.location_on_outlined, Icons.location_on, LiveMapScreen()),
           TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle, StaffDoneToday()),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),
         ];
@@ -143,17 +144,20 @@ class Bell extends StatefulWidget {
 class _BellState extends State<Bell> {
   int _unread = 0;
   Timer? _timer;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
     super.initState();
     _check();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _check());
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _check());
+    _live = realtime.listen((_) => _check(), names: const {'notification'});
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 

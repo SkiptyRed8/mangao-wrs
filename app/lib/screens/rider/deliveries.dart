@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../models/order.dart';
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -24,20 +26,65 @@ class RiderDeliveries extends StatefulWidget {
 class _RiderDeliveriesState extends State<RiderDeliveries> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loader.currentState?.reload());
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _loader.currentState?.reload());
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'order'});
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
+    _gps?.cancel();
     super.dispose();
   }
 
   Future<void> _reload() async => _loader.currentState?.reload();
+
+  // Rider 5: Location Sharing. On by itself while orders are out; sends the phone's location every
+  // 15 seconds; off after the last order (the server says sharing: false).
+  Timer? _gps;
+  String? _gpsNote;
+  bool _gpsProblem = false;
+
+  void _sharing(bool on) {
+    if (on && _gps == null) {
+      _send();
+      _gps = Timer.periodic(const Duration(seconds: 15), (_) => _send());
+    } else if (!on && _gps != null) {
+      _gps?.cancel();
+      _gps = null;
+    }
+  }
+
+  Future<void> _send() async {
+    try {
+      var p = await Geolocator.checkPermission();
+      if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
+      if (p == LocationPermission.denied || p == LocationPermission.deniedForever) {
+        throw Exception('Allow location so the owner and customers can see you.');
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      final r = await app.api.post('/api/rider/location', {'lat': pos.latitude, 'lng': pos.longitude});
+      if (!mounted) return;
+      if (r['sharing'] != true) _sharing(false);
+      setState(() {
+        _gpsProblem = false;
+        _gpsNote = 'On while orders are out · sent ${timeFmt(DateTime.now())}';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _gpsProblem = true;
+          _gpsNote = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +95,9 @@ class _RiderDeliveriesState extends State<RiderDeliveries> {
         load: () => app.api.get('/api/rider/deliveries'),
         builder: (context, d, reload) {
           final orders = [for (final o in d['orders'] as List) Order.fromJson(o as Map<String, dynamic>)];
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _sharing(orders.isNotEmpty);
+          });
           if (orders.isEmpty) {
             return const Body([
               Padding(
@@ -64,7 +114,8 @@ class _RiderDeliveriesState extends State<RiderDeliveries> {
             ]);
           }
           return Body([
-            const MsgBanner('Location Sharing', sub: 'On while orders are out'),
+            MsgBanner(_gpsProblem ? 'Location Sharing: turn on location' : 'Location Sharing',
+                sub: _gpsNote ?? 'On while orders are out', red: _gpsProblem),
             Row(children: [
               Expanded(child: Text('Out for Delivery (${orders.length})', style: const TextStyle(fontWeight: FontWeight.w800))),
               Text('Sent out ${(d['sentClock'] ?? '') as String}', style: const TextStyle(color: Brand.muted, fontSize: 12.5)),

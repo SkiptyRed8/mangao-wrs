@@ -35,3 +35,73 @@ describe('Guest mode (step 33)', () => {
     assert.equal(left.body.orders.length, 0);
   });
 });
+
+describe('Live location and live map (step 34)', () => {
+  test('sharing starts at Out for Delivery, owner/staff see the rider and pins, the customer sees the rider, and it stops after the last order', async () => {
+    const off = await as(rider, api().post('/api/rider/location')).send({ lat: 14.70, lng: 121.09 });
+    assert.equal(off.body.sharing, false, 'nothing out yet');
+
+    const juan = await one("SELECT user_id FROM users WHERE phone_number = '09170000003'");
+    const maria = await one("SELECT order_id FROM orders WHERE contact_phone = '09171234567'");
+    await as(owner, api().post('/api/admin/orders/accept')).send({ ids: [maria.order_id], riderId: juan.user_id });
+    await as(staff, api().post('/api/work/out')).send({ ids: [maria.order_id] });
+
+    const on = await as(rider, api().post('/api/rider/location')).send({ lat: 14.6901, lng: 121.0801 });
+    assert.equal(on.body.sharing, true);
+
+    const map = await as(staff, api().get('/api/map'));
+    assert.equal(map.status, 200);
+    assert.equal(map.body.riders.length, 1);
+    assert.equal(map.body.riders[0].name, 'Juan Dela Cruz');
+    assert.equal(map.body.riders[0].lat, 14.6901);
+    assert.deepEqual(map.body.riders[0].orders, [maria.order_id]);
+    assert.equal(map.body.orders[0].name, 'Maria Santos');
+    assert.equal((await as(rider, api().get('/api/map'))).status, 403);
+
+    const mariaToken = await loginAs('09171234567', 'maria123');
+    const seen = await as(mariaToken, api().get(`/api/orders/${maria.order_id}`));
+    assert.equal(seen.body.rider.lat, 14.6901);
+
+    await as(rider, api().post(`/api/rider/orders/${maria.order_id}/delivered`)).send({ paid: true });
+    const l = await one('SELECT is_sharing FROM rider_locations WHERE rider_id = ?', [juan.user_id]);
+    assert.equal(l.is_sharing, 0, 'sharing off after the last order');
+    const after = await as(mariaToken, api().get(`/api/orders/${maria.order_id}`));
+    assert.equal(after.body.rider, null);
+  });
+});
+
+describe('Real-time updates (step 35)', () => {
+  test('owner and the customer get an "order" event when an order changes; the customer gets the notification', async () => {
+    const http = require('http');
+    const { io: connect } = require('socket.io-client');
+    const realtime = require('../src/services/realtime');
+    const server = http.createServer(require('../src/app'));
+    realtime.attach(server);
+    await new Promise((r) => server.listen(0, r));
+    const url = `http://localhost:${server.address().port}`;
+    const ownerSock = connect(url, { auth: { token: owner }, transports: ['websocket'] });
+    const anaSock = connect(url, { auth: { token: ana }, transports: ['websocket'] });
+    const bad = connect(url, { auth: {}, transports: ['websocket'] });
+    try {
+      await Promise.all([ownerSock, anaSock].map((s) => new Promise((r, j) => { s.on('connect', r); s.on('connect_error', j); })));
+      const refused = await new Promise((r) => bad.on('connect_error', (e) => r(e.message)));
+      assert.equal(refused, 'Please log in');
+
+      const ownerGot = new Promise((r) => ownerSock.on('order', r));
+      const anaGot = new Promise((r) => anaSock.on('order', r));
+      const anaNote = new Promise((r) => anaSock.on('notification', r));
+      const placed = await as(ana, api().post('/api/orders')).send({ type: 'Refill', quantity: 1, address: typed });
+      const ev = await ownerGot;
+      assert.equal(ev.id, placed.body.order.id);
+      assert.equal(ev.status, 'New');
+      assert.equal((await anaGot).id, placed.body.order.id);
+      await as(owner, api().post(`/api/admin/orders/${placed.body.order.id}/decline`)).send({ reason: 'Closed' });
+      const n = await anaNote;
+      assert.equal(n.title, 'Order declined');
+      assert.equal(n.message, 'Closed');
+    } finally {
+      for (const s of [ownerSock, anaSock, bad]) s.close();
+      await new Promise((r) => server.close(r));
+    }
+  });
+});

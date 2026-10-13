@@ -55,6 +55,7 @@ async function addHistory(conn, orderId, status, userId, note = null, at = now()
     note,
     at,
   ]);
+  require('./realtime').orderChanged(orderId);
 }
 
 /** In-app notification for one account (or a guest phone). Shown by the bell and pushed in step 36. */
@@ -64,6 +65,8 @@ async function notify(conn, { userId = null, guestToken = null, orderId = null, 
     'INSERT INTO notifications (user_id, guest_token, order_id, notification_type, title, message) VALUES (?, ?, ?, ?, ?, ?)',
     [userId, guestToken, orderId, type, title, message]
   );
+  require('./realtime').notification({ userId, guestToken, title, message, type, orderId });
+  require('./push').send({ userId, guestToken, title, message, type, orderId });
 }
 
 /** Notifies the owner (all Owner accounts). */

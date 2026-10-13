@@ -2,8 +2,10 @@
 const http = require('http');
 const config = require('./config');
 const app = require('./app');
+const realtime = require('./services/realtime');
 
 const server = http.createServer(app);
+realtime.attach(server); // Socket.IO for real-time updates (step 35)
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

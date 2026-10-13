@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -25,16 +26,19 @@ class AdminOrderDetails extends StatefulWidget {
 class _AdminOrderDetailsState extends State<AdminOrderDetails> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loader.currentState?.reload());
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _loader.currentState?.reload());
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'order'});
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 

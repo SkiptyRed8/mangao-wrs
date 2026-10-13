@@ -70,6 +70,13 @@ async function finishBatchIfDone(conn, batchId, at = now()) {
   const [[r]] = await conn.query("SELECT COUNT(*) AS n FROM orders WHERE batch_id = ? AND status = 'Out for Delivery'", [batchId]);
   if (r.n > 0) return false;
   await conn.query('UPDATE delivery_batches SET finished_at = ? WHERE batch_id = ? AND finished_at IS NULL', [at, batchId]);
+  // Location sharing stops when the rider has no more orders on the road (Rider 5).
+  const [[b]] = await conn.query('SELECT rider_id FROM delivery_batches WHERE batch_id = ?', [batchId]);
+  const [[left]] = await conn.query("SELECT COUNT(*) AS n FROM orders WHERE rider_id = ? AND status = 'Out for Delivery'", [b.rider_id]);
+  if (left.n === 0) {
+    await conn.query('UPDATE rider_locations SET is_sharing = 0 WHERE rider_id = ?', [b.rider_id]);
+    setTimeout(() => require('./realtime').location(b.rider_id, { sharing: false }).catch(() => {}), 300);
+  }
   return true;
 }
 

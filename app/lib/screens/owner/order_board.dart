@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import '../../models/order.dart';
 import '../../services/api.dart';
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../widgets/common.dart';
-import '../common/coming_soon.dart';
+import '../common/live_map.dart';
 import '../shell.dart';
 import 'admin_order_details.dart';
 import '../station/send_out.dart';
@@ -39,6 +40,7 @@ class _OrderBoardState extends State<OrderBoard> {
   bool _select = false;
   final Set<int> _picked = {};
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
@@ -48,12 +50,14 @@ class _OrderBoardState extends State<OrderBoard> {
       app.boardView = null;
     }
     _load();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load(quiet: true));
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _load(quiet: true));
+    _live = realtime.listen((_) => _load(quiet: true));
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 
@@ -169,7 +173,7 @@ class _OrderBoardState extends State<OrderBoard> {
           const Gap(8),
           Row(children: [
             Expanded(
-              child: Btn('Live Map', () => go(context, const ComingSoon('Live Map', step: 34, what: 'Rider location and order pins', pushed: true)),
+              child: Btn('Live Map', () => go(context, const LiveMapScreen(pushed: true)),
                   outline: true, small: true),
             ),
             const Gap(8),

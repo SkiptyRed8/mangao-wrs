@@ -3,9 +3,10 @@
 const { Router } = require('express');
 const { one, query, transaction } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { notFound, conflict } = require('../utils/errors');
+const { bad, notFound, conflict } = require('../utils/errors');
 const { text } = require('../utils/validate');
-const { todayStart, clock } = require('../services/time');
+const { todayStart, clock, now } = require('../services/time');
+const realtime = require('../services/realtime');
 const { shapeOrder, ORDER_SELECT, stationPoint } = require('../services/orders');
 const { recordDelivered, recordNotDelivered } = require('../services/process');
 
@@ -44,6 +45,33 @@ router.post('/orders/:id/not-delivered', async (req, res) => {
   const o = await myOut(req);
   const r = await transaction((conn) => recordNotDelivered(conn, o, req.user.user_id, text((req.body || {}).note, 200)));
   res.json(r);
+});
+
+// POST /api/rider/location { lat, lng } -> { sharing }
+// The rider's phone sends its location every few seconds while orders are out (Rider 5). Sharing
+// turns on by itself at Out for Delivery and off after the last order of the batch.
+router.post('/location', async (req, res) => {
+  const lat = Number((req.body || {}).lat);
+  const lng = Number((req.body || {}).lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    throw bad('LOCATION_INVALID', 'Location not valid', 'Turn on location and try again.');
+  }
+  const out = await one(
+    "SELECT batch_id FROM orders WHERE rider_id = ? AND status = 'Out for Delivery' ORDER BY out_at DESC LIMIT 1",
+    [req.user.user_id]
+  );
+  if (!out) {
+    await query('UPDATE rider_locations SET is_sharing = 0 WHERE rider_id = ?', [req.user.user_id]);
+    return res.json({ sharing: false });
+  }
+  const t = now();
+  await query(
+    `INSERT INTO rider_locations (rider_id, batch_id, latitude, longitude, is_sharing, updated_at) VALUES (?, ?, ?, ?, 1, ?)
+     ON DUPLICATE KEY UPDATE batch_id = VALUES(batch_id), latitude = VALUES(latitude), longitude = VALUES(longitude), is_sharing = 1, updated_at = VALUES(updated_at)`,
+    [req.user.user_id, out.batch_id, lat.toFixed(7), lng.toFixed(7), t]
+  );
+  await realtime.location(req.user.user_id, { lat, lng, at: t, sharing: true });
+  res.json({ sharing: true });
 });
 
 // GET /api/rider/done-today -> { delivered, paidAmount, unpaidCount, orders }

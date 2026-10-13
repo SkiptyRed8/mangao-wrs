@@ -23,6 +23,7 @@ app.use('/api/rider', require('./routes/rider'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/sales', require('./routes/sales'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/map', require('./routes/map'));
 
 app.use(notFoundRoute);
 app.use(errorHandler);

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -18,6 +21,19 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
+  StreamSubscription<RtEvent>? _live;
+
+  @override
+  void initState() {
+    super.initState();
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'notification'});
+  }
+
+  @override
+  void dispose() {
+    _live?.cancel();
+    super.dispose();
+  }
 
   Future<void> _open(Map<String, dynamic> n) async {
     if (n['read'] != true) {

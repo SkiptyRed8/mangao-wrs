@@ -66,7 +66,13 @@ async function myOrder(req) {
 router.get('/:id', async (req, res) => {
   const o = await myOrder(req);
   const station = await stationPoint();
-  res.json({ order: shapeOrder(o, station), timeline: await timeline(o.order_id), stationPhone: station.phone });
+  // Out for Delivery: the rider's last location for the live map (Customer 5, Customer 11).
+  let rider = null;
+  if (o.status === 'Out for Delivery' && o.rider_id) {
+    const l = await one('SELECT latitude, longitude, updated_at, is_sharing FROM rider_locations WHERE rider_id = ?', [o.rider_id]);
+    if (l && l.is_sharing) rider = { id: o.rider_id, lat: Number(l.latitude), lng: Number(l.longitude), updatedAt: l.updated_at };
+  }
+  res.json({ order: shapeOrder(o, station), timeline: await timeline(o.order_id), stationPhone: station.phone, rider, station: { lat: station.lat, lng: station.lng } });
 });
 
 // POST /api/orders { type: Refill|Package, quantity, address: {...} | addressId, phone, notes, name (guests) }

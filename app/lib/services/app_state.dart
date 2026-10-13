@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
 import 'api.dart';
+import 'realtime.dart';
 
 /// Which screens the owner is looking at (top-bar switcher, Admin Home 2).
 enum AppView { admin, staff, delivery }
@@ -44,6 +45,7 @@ class AppState extends ChangeNotifier {
     api.guestToken = guest ? guestToken : null;
     final token = prefs.getString(_kToken);
     if (token == null) {
+      if (guest && guestToken != null) realtime.connect(guest: guestToken);
       notifyListeners();
       return;
     }
@@ -64,6 +66,7 @@ class AppState extends ChangeNotifier {
       // Session ended or account deactivated: back to Welcome. Server off: keep the saved user.
       if (!e.offline) await _clear(prefs);
     }
+    if (user != null) realtime.connect(token: token);
     notifyListeners();
   }
 
@@ -78,12 +81,14 @@ class AppState extends ChangeNotifier {
     await prefs.setString(_kToken, token);
     await prefs.setString(_kUser, jsonEncode(u.toJson()));
     await prefs.setBool(_kGuest, false);
+    realtime.connect(token: token);
     notifyListeners();
   }
 
   Future<void> _clear(SharedPreferences prefs) async {
     api.token = null;
     user = null;
+    realtime.disconnect();
     await prefs.remove(_kToken);
     await prefs.remove(_kUser);
   }
@@ -131,6 +136,7 @@ class AppState extends ChangeNotifier {
     tab = 0;
     await prefs.setString(_kGuestToken, guestToken!);
     await prefs.setBool(_kGuest, true);
+    realtime.connect(guest: guestToken);
     notifyListeners();
   }
 
@@ -157,6 +163,7 @@ class AppState extends ChangeNotifier {
     }
     guest = false;
     api.guestToken = null;
+    realtime.disconnect();
     await prefs.setBool(_kGuest, false);
     view = AppView.admin;
     tab = 0;

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -23,16 +24,19 @@ class OwnerHome extends StatefulWidget {
 class _OwnerHomeState extends State<OwnerHome> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 20), (_) => _loader.currentState?.reload());
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _loader.currentState?.reload());
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'order', 'refresh', 'notification'});
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 

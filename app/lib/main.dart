@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/root.dart';
+import 'services/nav.dart';
 import 'theme/brand.dart';
 
 void main() {
@@ -16,6 +17,8 @@ class MangaoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mangao WRS',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navKey,
+      scaffoldMessengerKey: messengerKey,
       theme: buildTheme(),
       // In Chrome on the laptop, show the app at phone size in the middle of the window.
       builder: (context, child) => LayoutBuilder(

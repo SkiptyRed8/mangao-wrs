@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
 import '../../services/app_state.dart';
+import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
@@ -24,16 +25,19 @@ class _MyOrdersState extends State<MyOrders> {
   final _loader = GlobalKey<LoaderState<Map<String, dynamic>>>();
   int _tab = 0; // Active, History
   Timer? _poll;
+  StreamSubscription<RtEvent>? _live;
 
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loader.currentState?.reload());
+    _poll = Timer.periodic(const Duration(seconds: 60), (_) => _loader.currentState?.reload());
+    _live = realtime.listen((_) => _loader.currentState?.reload(), names: const {'order'});
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _live?.cancel();
     super.dispose();
   }
 
