@@ -10,10 +10,10 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch-path=src src/server.js",
+    "dev": "node --watch-path=src --watch-path=.env src/server.js",
     "db:setup": "node scripts/setup-db.js",
     "db:demo": "node scripts/setup-db.js --demo",
-    "mail:test": "node scripts/test-mail.js",
+    "mail:test": "node scripts/test-email.js",
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\""
   },
   "dependencies": {

@@ -17,6 +17,13 @@ server.on('error', (err) => {
 
 server.listen(config.port, () => {
   console.log(`Mangao WRS API running on http://localhost:${config.port}  (health check: /health)`);
+  const m = config.mail;
+  if (m.user && m.pass) {
+    const [name, domain] = m.user.split('@');
+    console.log(`[email] Gmail account: ${name.slice(0, 2)}****@${domain || '?'} · App Password: ${m.pass.length} letters${m.pass.length === 16 ? '' : ' (should be 16)'}`);
+  } else {
+    console.log('[email] not set up: reset codes are printed here instead of emailed');
+  }
 });
 
 module.exports = server;
