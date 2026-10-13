@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/user.dart';
@@ -7,15 +9,18 @@ import '../widgets/common.dart';
 import '../widgets/watch.dart';
 import 'common/account_screen.dart';
 import 'common/coming_soon.dart';
+import 'common/done_today.dart';
+import 'common/notifications.dart';
 import 'customer/customer_home.dart';
+import 'customer/my_orders.dart';
 import 'owner/inventory.dart';
 import 'owner/order_board.dart';
 import 'owner/owner_home.dart';
 import 'owner/sales.dart';
-import 'rider/deliveries.dart';
-import 'staff/staff_todo.dart';
 import 'owner/settings_screen.dart';
 import 'owner/staff_screens.dart';
+import 'rider/deliveries.dart';
+import 'staff/staff_todo.dart';
 
 class TabDef {
   final String label;
@@ -45,22 +50,19 @@ class Shell extends StatelessWidget {
           TabDef('To Do', Icons.assignment_outlined, Icons.assignment, StaffTodo()),
           TabDef('Live Map', Icons.location_on_outlined, Icons.location_on,
               ComingSoon('Live Map', step: 34, what: 'Rider location and order pins')),
-          TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle,
-              ComingSoon('Done Today', step: 30, what: 'Gallons processed today, orders logged and sent out')),
+          TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle, StaffDoneToday()),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),
         ];
       case Role.rider:
         return const [
           TabDef('Deliveries', Icons.local_shipping_outlined, Icons.local_shipping, RiderDeliveries()),
-          TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle,
-              ComingSoon('Done Today', step: 30, what: 'Delivered today, paid and unpaid totals')),
+          TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle, RiderDoneToday()),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),
         ];
       default:
         return const [
           TabDef('Home', Icons.home_outlined, Icons.home, CustomerHome()),
-          TabDef('My Orders', Icons.list_alt_outlined, Icons.list_alt,
-              ComingSoon('My Orders', step: 32, what: 'Unpaid balance, active orders, history, reorder')),
+          TabDef('My Orders', Icons.list_alt_outlined, Icons.list_alt, MyOrders()),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),
         ];
     }
@@ -130,18 +132,51 @@ class ViewSwitch extends StatelessWidget {
   }
 }
 
-/// Notification bell (owner).
-class Bell extends StatelessWidget {
+/// Notification bell (owner) with the number of unread alerts; checks every 30 seconds.
+class Bell extends StatefulWidget {
   const Bell({super.key});
+
+  @override
+  State<Bell> createState() => _BellState();
+}
+
+class _BellState extends State<Bell> {
+  int _unread = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _check());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _check() async {
+    try {
+      final r = await app.api.get('/api/notifications/unread');
+      if (mounted) setState(() => _unread = (r['unread'] as num).toInt());
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) => IconButton(
         tooltip: 'Notifications',
-        onPressed: () => go(
-          context,
-          const ComingSoon('Notifications', step: 31, what: 'New orders, logged orders, not delivered, tank and low-stock alerts', pushed: true),
+        onPressed: () async {
+          await go(context, const NotificationsScreen());
+          await _check();
+        },
+        icon: Badge(
+          isLabelVisible: _unread > 0,
+          label: Text('$_unread'),
+          backgroundColor: Brand.blue,
+          child: const Icon(Icons.notifications_none, color: Brand.ink),
         ),
-        icon: const Icon(Icons.notifications_none, color: Brand.ink),
       );
 }
 
@@ -161,7 +196,7 @@ class OwnerMore extends StatelessWidget {
         RowLink('Prices & Settings', sub: 'Prices, tank limit, low-stock levels, station location', icon: Icons.tune,
             onTap: () => go(context, const SettingsScreen())),
         RowLink('Notifications', sub: 'Alerts and preferences', icon: Icons.notifications_none,
-            onTap: () => go(context, const ComingSoon('Notifications', step: 31, what: 'Alerts and preferences', pushed: true))),
+            onTap: () => go(context, const NotificationsScreen())),
         RowLink('My Account', sub: 'Profile, password, log out', icon: Icons.person_outline,
             onTap: () => go(context, const AccountScreen(pushed: true))),
       ]),
