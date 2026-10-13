@@ -1,0 +1,164 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../config.dart';
+import '../../services/api.dart';
+import '../../services/app_state.dart';
+import '../../theme/brand.dart';
+import '../../utils/format.dart';
+import '../../widgets/common.dart';
+
+/// Admin Sales 4: Export Report. Choose the report (Daily, Weekly, Unpaid accounts), the date or week,
+/// and the format (PDF or Spreadsheet), then Create file. The file downloads (Chrome: Downloads folder;
+/// phone: opens in the browser to save or share).
+class ExportReport extends StatefulWidget {
+  /// 0 Daily, 1 Weekly, 2 Unpaid accounts.
+  final int report;
+  final DateTime? date;
+  const ExportReport({super.key, this.report = 0, this.date});
+
+  @override
+  State<ExportReport> createState() => _ExportReportState();
+}
+
+class _ExportReportState extends State<ExportReport> {
+  late int _report = widget.report;
+  late DateTime _date;
+  int _format = 0; // 0 PDF, 1 Spreadsheet
+  bool _busy = false;
+  ApiException? _error;
+  String? _fileName;
+  String? _url;
+
+  static const _reports = ['Daily', 'Weekly', 'Unpaid accounts'];
+  static const _keys = ['daily', 'weekly', 'unpaid'];
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  static String _ymd(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  static String _label(DateTime d) => '${_months[d.month - 1]} ${d.day}, ${d.year}';
+
+  DateTime get _today {
+    final p = ph(DateTime.now());
+    return DateTime(p.year, p.month, p.day);
+  }
+
+  DateTime get _monday => _date.subtract(Duration(days: _date.weekday - 1));
+
+  String get _dateText {
+    if (_report == 2) return 'As of today, ${_label(_today)}';
+    if (_report == 1) return 'Week of ${_label(_monday)} to ${_label(_monday.add(const Duration(days: 6)))}';
+    return _label(_date);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.date ?? _today;
+    _date = DateTime(d.year, d.month, d.day);
+  }
+
+  void _changed(VoidCallback f) => setState(() {
+        f();
+        _fileName = null;
+        _url = null;
+        _error = null;
+      });
+
+  Future<void> _pick() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2025),
+      lastDate: _today,
+      helpText: _report == 1 ? 'Choose any day of the week' : 'Choose date',
+    );
+    if (d != null) _changed(() => _date = DateTime(d.year, d.month, d.day));
+  }
+
+  Future<void> _create() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final r = await app.api.post('/api/export', {
+        'report': _keys[_report],
+        if (_report != 2) 'date': _ymd(_date),
+        'format': _format == 0 ? 'pdf' : 'xlsx',
+      });
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _fileName = r['fileName'] as String;
+        _url = r['url'] as String;
+      });
+      await _download();
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = e;
+        });
+      }
+    }
+  }
+
+  Future<void> _download() async {
+    final ok = await launchUrl(Uri.parse('${AppConfig.apiUrl}$_url'), mode: LaunchMode.externalApplication);
+    if (!ok && mounted) toast(context, 'Could not open the file');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Export Report')),
+      body: Body([
+        if (_error != null) MsgBanner(_error!.title, sub: _error!.message),
+        const Label('Report'),
+        const Gap(6),
+        Seg(_reports, _report, (i) => _changed(() => _report = i)),
+        const Gap(14),
+        Label(_report == 1 ? 'Week' : 'Date'),
+        const Gap(6),
+        Box(
+          onTap: _report == 2 ? null : _pick,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          child: Row(children: [
+            const Icon(Icons.calendar_today_outlined, color: Brand.blue, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_dateText, style: const TextStyle(fontWeight: FontWeight.w700))),
+            if (_report != 2) const Icon(Icons.chevron_right, color: Brand.blue),
+          ]),
+        ),
+        const Gap(14),
+        const Label('Format'),
+        const Gap(6),
+        Seg(const ['PDF', 'Spreadsheet'], _format, (i) => _changed(() => _format = i)),
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text('Spreadsheet opens in Excel or Google Sheets.', style: TextStyle(color: Brand.muted, fontSize: 12)),
+        ),
+        const Gap(18),
+        Btn('Create file', _create, busy: _busy, icon: Icons.file_download_outlined),
+        if (_fileName != null) ...[
+          const Gap(14),
+          Box(
+            tint: true,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Row(children: [
+                Icon(Icons.check_circle, color: Brand.blue),
+                SizedBox(width: 8),
+                Text('File saved', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              ]),
+              const Gap(4),
+              Text(_fileName!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5)),
+              const Gap(2),
+              const Text('Check your Downloads folder. On a phone, share it from there.', style: TextStyle(color: Brand.muted, fontSize: 12.5)),
+              const Gap(10),
+              Btn('Download again', _create, outline: true, small: true),
+            ]),
+          ),
+        ],
+      ]),
+    );
+  }
+}

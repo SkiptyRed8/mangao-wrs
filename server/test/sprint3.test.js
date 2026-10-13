@@ -217,3 +217,48 @@ describe('Unpaid Accounts (step 38)', () => {
     assert.equal((await as(staff, api().get('/api/sales/unpaid'))).status, 403);
   });
 });
+
+describe('Export Report (step 39)', () => {
+  const download = async (body) => {
+    const r = await as(owner, api().post('/api/export')).send(body);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const f = await api().get(r.body.url).buffer(true).parse((res, cb) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    return { r, f };
+  };
+
+  test('daily, weekly and unpaid as PDF and spreadsheet; the link is a short ticket', async () => {
+    const d = await download({ report: 'daily', date: '2026-10-14', format: 'pdf' });
+    assert.equal(d.r.body.fileName, 'Mangao-Daily-Sales-2026-10-14.pdf');
+    assert.equal(d.f.headers['content-type'], 'application/pdf');
+    assert.match(d.f.headers['content-disposition'], /attachment; filename="Mangao-Daily-Sales-2026-10-14.pdf"/);
+    assert.equal(d.f.body.slice(0, 5).toString(), '%PDF-');
+
+    const w = await download({ report: 'weekly', date: '2026-10-14', format: 'xlsx' });
+    assert.equal(w.r.body.fileName, 'Mangao-Weekly-Sales-2026-10-12.xlsx');
+    assert.equal(w.f.body.slice(0, 2).toString(), 'PK', 'xlsx is a zip');
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(w.f.body);
+    assert.deepEqual(wb.worksheets.map((s) => s.name), ['Summary', 'Day by day']);
+    assert.equal(wb.getWorksheet('Day by day').rowCount, 8);
+
+    const u = await download({ report: 'unpaid', format: 'pdf' });
+    assert.match(u.r.body.fileName, /^Mangao-Unpaid-Accounts-\d{4}-\d{2}-\d{2}\.pdf$/);
+    const ux = await download({ report: 'unpaid', format: 'xlsx' });
+    const wb2 = new ExcelJS.Workbook();
+    await wb2.xlsx.load(ux.f.body);
+    assert.deepEqual(wb2.worksheets.map((s) => s.name), ['Summary', 'Customers', 'Unpaid orders']);
+  });
+
+  test('errors: no report, no format, future date, bad link, not the owner', async () => {
+    assert.equal((await as(owner, api().post('/api/export')).send({ format: 'pdf' })).body.error.title, 'Choose a report');
+    assert.equal((await as(owner, api().post('/api/export')).send({ report: 'daily' })).body.error.title, 'Choose a format');
+    assert.equal((await as(owner, api().post('/api/export')).send({ report: 'daily', format: 'pdf', date: '2099-01-01' })).body.error.title, 'No sales yet');
+    assert.equal((await api().get('/api/export/file?ticket=nope')).body.error.title, 'Link expired');
+    assert.equal((await as(staff, api().post('/api/export')).send({ report: 'daily', format: 'pdf' })).status, 403);
+  });
+});

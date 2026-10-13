@@ -481,4 +481,22 @@ module.exports = [
       ['Pay the last order of a customer, go back.', 'The customer is gone from Unpaid Accounts; the Daily report Money earned goes up by that amount today.'],
     ],
   },
+  {
+    n: 39,
+    title: 'Export reports',
+    screens: 'Admin Sales 4',
+    as: 'Owner',
+    before: 'Restart START.bat once so the server has the new export code. Files go to the Chrome Downloads folder.',
+    cases: [
+      ['Sales > Daily, tap Export at the bottom.', 'Export Report opens with Report = Daily and the same date as the report.'],
+      ['Format PDF, tap Create file.', 'Box "File saved" with the name Mangao-Daily-Sales-YYYY-MM-DD.pdf; Chrome downloads it.'],
+      ['Open the PDF.', 'Logo and station name, "Daily Sales Report", the date, the summary (Money earned, Unpaid, Gallons ...) and the Orders table with blue headers. Numbers match the Daily screen.'],
+      ['Choose Spreadsheet, Create file. Open it in Excel (or Google Sheets).', 'Mangao-Daily-Sales-....xlsx with a Summary sheet and an Orders sheet; amounts show with the peso sign.'],
+      ['Choose Weekly, tap the date and pick any day.', 'Shows "Week of <Monday> to <Sunday>". Create file: Mangao-Weekly-Sales-<Monday>.pdf with Day by day and Last week columns.'],
+      ['Choose Unpaid accounts.', 'Date shows "As of today" and cannot be changed. Create file: Customers and Unpaid orders tables; Total owed matches Unpaid Accounts.'],
+      ['Sales > Weekly > Export, and Unpaid Accounts > download icon (top right).', 'Export opens with Weekly / Unpaid accounts already chosen.'],
+      ['Tap Download again.', 'The file downloads again.'],
+      ['Copy the download link from Chrome downloads and open it after 5 minutes.', '"Link expired / Tap Create file again" (the link only works for 5 minutes).'],
+    ],
+  },
 ];

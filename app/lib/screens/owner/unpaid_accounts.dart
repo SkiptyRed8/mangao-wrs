@@ -10,6 +10,7 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../../widgets/map_widgets.dart';
 import 'admin_order_details.dart';
+import 'export_report.dart';
 
 String _money(num v) => peso(v);
 
@@ -83,7 +84,13 @@ class _UnpaidAccountsState extends State<UnpaidAccounts> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Unpaid Accounts')),
+      appBar: AppBar(title: const Text('Unpaid Accounts'), actions: [
+        IconButton(
+          tooltip: 'Export',
+          icon: const Icon(Icons.file_download_outlined),
+          onPressed: () => go(context, const ExportReport(report: 2)),
+        ),
+      ]),
       body: Loader<Map<String, dynamic>>(
         key: _loader,
         load: () => app.api.get('/api/sales/unpaid?q=${Uri.encodeQueryComponent(_q.text.trim())}'),

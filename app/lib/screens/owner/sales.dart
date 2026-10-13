@@ -7,6 +7,7 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../shell.dart';
 import 'admin_order_details.dart';
+import 'export_report.dart';
 import 'unpaid_accounts.dart';
 import 'weekly_sales.dart';
 
@@ -205,7 +206,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 ),
               ),
             const Gap(8),
-            Btn('Export', () => toast(context, 'Export comes in step 39'), outline: true),
+            Btn('Export', () => go(context, ExportReport(report: 0, date: _day)), outline: true, icon: Icons.file_download_outlined),
           ],
         ]),
       ),

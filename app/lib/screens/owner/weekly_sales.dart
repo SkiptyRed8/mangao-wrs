@@ -5,6 +5,7 @@ import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import 'export_report.dart';
 
 /// Admin Sales 2: Weekly Sales Report. Choose a week (Monday to Sunday); money earned for each day as
 /// bars (this week dark, last week light), totals, and the change from last week. Tap a day to open
@@ -272,6 +273,8 @@ class _WeeklySalesState extends State<WeeklySales> {
                 ]),
               ),
             ),
+          const Gap(8),
+          Btn('Export', () => go(context, ExportReport(report: 1, date: _monday)), outline: true, icon: Icons.file_download_outlined),
         ],
       ]),
     );
