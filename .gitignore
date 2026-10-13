@@ -16,3 +16,4 @@ app/*.iml
 app/android/.gradle/
 app/android/local.properties
 app/android/app/build/
+server/firebase-key.json
