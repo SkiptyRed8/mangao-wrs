@@ -140,6 +140,11 @@ describe('Order Board, Accept and Decline (FR-04, FR-11; Admin Orders 1-4)', () 
 
   test('accept one: 30 minutes after accepting, one rider, timeline and customer notified', async () => {
     setNow('2026-10-14T09:20:00+08:00');
+    // The demo orders are stamped with the real clock; move them before 9:20 AM so the timeline order does not depend on when the test runs.
+    await query("UPDATE orders SET created_at = '2026-10-14 09:05:00' WHERE status = 'New'");
+    await query(
+      "UPDATE order_status_history SET changed_at = '2026-10-14 09:05:00' WHERE status = 'Waiting for order to be accepted'"
+    );
     const riders = await as(owner, api().get('/api/admin/orders/riders'));
     const juan = riders.body.riders.find((x) => x.name === 'Juan Dela Cruz');
     assert.equal(riders.body.riders.at(-1).name, 'Me (Owner)');

@@ -115,7 +115,7 @@ router.post('/accept', async (req, res) => {
       await notifyCustomer(conn, o, {
         type: 'Order Accepted',
         title: 'Order accepted',
-        message: `Your refill order is processing. Estimated delivery: ${when}.`,
+        message: `Your ${o.order_type === 'Package' ? 'package' : 'refill'} order is processing. Estimated delivery: ${when}.`,
       });
     }
   });
