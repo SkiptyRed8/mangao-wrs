@@ -8,7 +8,8 @@ import '../theme/brand.dart';
 import 'common.dart';
 
 /// Commonwealth, Quezon City: where the map starts when nothing is pinned yet.
-const qcStart = LatLng(14.6976, 121.0886);
+/// The station: 98 Riverside Street, Barangay Commonwealth, Quezon City (maps start here).
+const qcStart = LatLng(14.692823, 121.0871699);
 
 const _tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const _agent = 'com.mangao.mangao_wrs';

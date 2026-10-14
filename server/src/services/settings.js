@@ -26,6 +26,7 @@ async function stationSettings() {
       lat: s.station_latitude === null ? null : Number(s.station_latitude),
       lng: s.station_longitude === null ? null : Number(s.station_longitude),
       phone: s.station_phone || '',
+      address: s.station_address || '',
     },
   };
 }

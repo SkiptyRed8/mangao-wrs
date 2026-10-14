@@ -38,7 +38,7 @@ describe('Setup (T03-T05)', () => {
     assert.equal(tank.gallons_count, 0);
     assert.equal(tank.tank_limit, 60);
     const s = await one('SELECT * FROM station_settings');
-    assert.equal(Number(s.station_latitude), 14.6976);
+    assert.equal(Number(s.station_latitude), 14.692823);
   });
 
   test('order rules are enforced by the database', async () => {

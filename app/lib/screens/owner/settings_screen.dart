@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../services/api.dart';
 import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
@@ -83,7 +84,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _editLocation(Map<String, dynamic> station) async {
     final msg = await go<String>(
       context,
-      StationLocationScreen(lat: (station['lat'] as num?)?.toDouble(), lng: (station['lng'] as num?)?.toDouble()),
+      StationLocationScreen(
+        lat: (station['lat'] as num?)?.toDouble(),
+        lng: (station['lng'] as num?)?.toDouble(),
+        address: (station['address'] ?? '') as String,
+      ),
     );
     if (msg != null && mounted) {
       toast(context, msg);
@@ -132,7 +137,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               KV('Seals', _num(low['seals'] as num), last: true),
             ]),
             _card('Station location', 'Change', () => _editLocation(station), [
-              const Text('Used to show customer distance', style: TextStyle(color: Brand.muted)),
+              if ((station['address'] ?? '') != '')
+                Text(station['address'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const Text('Used for customer distance, maps and reports', style: TextStyle(color: Brand.muted)),
               if (hasPin)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -153,10 +160,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class StationLocationScreen extends StatefulWidget {
   final double? lat;
   final double? lng;
-  const StationLocationScreen({super.key, this.lat, this.lng});
+  final String address;
+  const StationLocationScreen({super.key, this.lat, this.lng, this.address = ''});
 
-  /// Commonwealth, Quezon City (used until the owner sets the pin).
-  static const fallback = LatLng(14.6976, 121.0886);
+  /// 98 Riverside Street, Barangay Commonwealth, Quezon City (used until the owner sets the pin).
+  static const fallback = LatLng(14.692823, 121.0871699);
 
   @override
   State<StationLocationScreen> createState() => _StationLocationScreenState();
@@ -164,8 +172,15 @@ class StationLocationScreen extends StatefulWidget {
 
 class _StationLocationScreenState extends State<StationLocationScreen> {
   final _map = MapController();
+  late final _address = TextEditingController(text: widget.address);
   bool _busy = false;
-  String? _error;
+  ApiException? _error;
+
+  @override
+  void dispose() {
+    _address.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     final c = _map.camera.center;
@@ -174,13 +189,13 @@ class _StationLocationScreenState extends State<StationLocationScreen> {
       _error = null;
     });
     try {
-      final r = await app.api.put('/api/settings/location', {'lat': c.latitude, 'lng': c.longitude});
+      final r = await app.api.put('/api/settings/location', {'lat': c.latitude, 'lng': c.longitude, 'address': _address.text});
       if (mounted) Navigator.pop(context, r['message'] as String?);
-    } on Exception catch (e) {
+    } on ApiException catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = e.toString();
+          _error = e;
         });
       }
     }
@@ -195,7 +210,9 @@ class _StationLocationScreenState extends State<StationLocationScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (_error != null) MsgBanner(_error!),
+            if (_error != null) MsgBanner(_error!.title, sub: _error!.message),
+            Field('Station address', _address,
+                hint: 'e.g. 98 Riverside Street, Barangay Commonwealth, Quezon City', error: _error?.code == 'ADDRESS_MISSING'),
             const Text('Move the pin to the station', style: TextStyle(fontWeight: FontWeight.w700)),
             const Text('Drag the map; the pin stays in the middle.', style: TextStyle(color: Brand.muted, fontSize: 12.5)),
           ]),

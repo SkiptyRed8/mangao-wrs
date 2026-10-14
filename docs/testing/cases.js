@@ -580,4 +580,20 @@ module.exports = [
       ['Tap Call.', 'Opens the phone dialer (tel: link in Chrome).'],
     ],
   },
+  {
+    n: 'S',
+    title: 'Station address and map pin',
+    screens: 'Admin More 3, Live Map, Export',
+    as: 'Owner',
+    before: 'Close the server window and run START.bat again. The server window should show "[database] updated: station address, station pin on Riverside Street" once (your data is kept).',
+    cases: [
+      ['More > Prices & Settings, Station location card.', 'Shows "98 Riverside Street, Barangay Commonwealth, Quezon City" and the pin numbers.'],
+      ['Tap Change.', 'Station location page with the Station address field filled in; the map opens on Riverside Street near Commonwealth Avenue.'],
+      ['Drag the map so the pin is exactly on the station building (zoom in), tap Save.', 'Message "Distances use the new location."; the pin numbers change.'],
+      ['Change, clear the address and Save.', 'Red message "Address missing"; the address field has a red border.'],
+      ['Orders > Live Map, hover/long-press the station icon.', 'Tooltip "Station: 98 Riverside Street, ..."; the map centers there when nothing is out.'],
+      ['Order Board: look at the distance on a new order.', 'Distance (km) is measured from the new pin.'],
+      ['Sales > Export a PDF.', 'Under the station name: the station address.'],
+    ],
+  },
 ];

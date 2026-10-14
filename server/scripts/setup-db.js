@@ -78,9 +78,9 @@ async function setupDatabase({ demo = false, database = config.db.database, quie
         `INSERT INTO stock_movements (item_id, recorded_by, movement_type, quantity_change, note)
          SELECT item_id, 1, 'Added', quantity_on_hand, 'Starting stock' FROM inventory_items`
       );
-      // Station: Barangay Commonwealth, Quezon City (the owner can move the pin in Prices & Settings).
+      // Station phone (address and pin come from schema.sql; the owner can move the pin in Prices & Settings).
       await conn.query(
-        "UPDATE station_settings SET station_latitude = 14.6976, station_longitude = 121.0886, station_phone = ? WHERE setting_id = 1",
+        'UPDATE station_settings SET station_phone = ? WHERE setting_id = 1',
         [normalizePhone(o.phone)]
       );
       for (const d of DEMO_ORDERS) {

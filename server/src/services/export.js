@@ -8,6 +8,7 @@ const { query } = require('../db');
 const { dayRange, daySummary, dayOrders, addDays, mondayOf, weekSummary, change } = require('./reports');
 const { unpaidAccounts, KEYED_ORDERS, UNPAID } = require('./customers');
 const { phParts, now } = require('./time');
+const { stationSettings } = require('./settings');
 
 const STATION = 'Mangao Water Refilling Station';
 const BLUE = '#0A84E0';
@@ -175,7 +176,8 @@ function toPdf(r) {
     // Header
     if (fs.existsSync(LOGO)) doc.image(LOGO, left, 36, { width: 44 });
     doc.fillColor('#111827').font('Helvetica-Bold').fontSize(16).text(STATION, left + 54, 40);
-    doc.font('Helvetica').fontSize(10).fillColor('#6B7280').text(`Created ${dateLabel(ymdOf(now()))} ${clockOf(now())}`, left + 54, 60);
+    doc.font('Helvetica').fontSize(9.5).fillColor('#6B7280').text(r.address || '', left + 54, 59);
+    doc.text(`Created ${dateLabel(ymdOf(now()))} ${clockOf(now())}`, left + 54, 72);
     doc.moveTo(left, 90).lineTo(left + width, 90).lineWidth(1.5).strokeColor(BLUE).stroke();
     doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(18).text(r.title, left, 102);
     doc.fillColor('#111827').font('Helvetica').fontSize(11).text(r.subtitle, left, 124);
@@ -253,6 +255,7 @@ async function toXlsx(r) {
   const s = wb.addWorksheet('Summary');
   s.columns = [{ width: 28 }, { width: 22 }];
   s.addRow([STATION]).font = { bold: true, size: 14 };
+  if (r.address) s.addRow([r.address]);
   s.addRow([r.title]).font = { bold: true, size: 12, color: { argb: 'FF0A84E0' } };
   s.addRow([r.subtitle]);
   s.addRow([]);
@@ -278,6 +281,7 @@ async function toXlsx(r) {
 
 async function exportFile(report, date, format) {
   const r = await buildReport(report, date);
+  r.address = (await stationSettings()).station.address;
   const buf = format === 'pdf' ? await toPdf(r) : await toXlsx(r);
   return {
     fileName: `${r.fileBase}.${format === 'pdf' ? 'pdf' : 'xlsx'}`,

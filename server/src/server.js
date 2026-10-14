@@ -17,6 +17,10 @@ server.on('error', (err) => {
 
 server.listen(config.port, () => {
   console.log(`Mangao WRS API running on http://localhost:${config.port}  (health check: /health)`);
+  require('./services/migrate')
+    .migrate()
+    .then((done) => done.length && console.log(`[database] updated: ${done.join(', ')}`))
+    .catch((err) => console.error('[database] update skipped:', err.message));
   const m = config.mail;
   if (m.user && m.pass) {
     const [name, domain] = m.user.split('@');

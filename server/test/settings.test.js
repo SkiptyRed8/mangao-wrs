@@ -57,3 +57,32 @@ describe('Prices & Settings (FR-09, Admin More 3)', () => {
     assert.equal((await asOwner(api().put('/api/settings/location')).send({ lat: 0, lng: 0 })).status, 400);
   });
 });
+
+describe('Station address and pin (Oct 14)', () => {
+  test('new database has the station address and Riverside Street pin; the owner can change the address', async () => {
+    const { loginAs } = require('./helpers');
+    const owner = await loginAs('09170000001', 'owner123');
+    const s = await api().get('/api/settings').set('Authorization', `Bearer ${owner}`);
+    assert.equal(s.body.station.address, '98 Riverside Street, Barangay Commonwealth, Quezon City');
+    const r = await api().put('/api/settings/location').set('Authorization', `Bearer ${owner}`)
+      .send({ lat: 14.6931, lng: 121.0875, address: '98 Riverside St., Brgy. Commonwealth, QC' });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.station.address, '98 Riverside St., Brgy. Commonwealth, QC');
+    const empty = await api().put('/api/settings/location').set('Authorization', `Bearer ${owner}`).send({ lat: 14.6931, lng: 121.0875, address: ' ' });
+    assert.equal(empty.body.error.title, 'Address missing');
+    const map = await api().get('/api/map').set('Authorization', `Bearer ${owner}`);
+    assert.equal(map.body.station.address, '98 Riverside St., Brgy. Commonwealth, QC');
+  });
+
+  test('an older database gets the address column; the old placeholder pin moves to Riverside Street', async () => {
+    const { query, one } = require('../src/db');
+    await query('ALTER TABLE station_settings DROP COLUMN station_address');
+    await query('UPDATE station_settings SET station_latitude = 14.6976, station_longitude = 121.0886 WHERE setting_id = 1');
+    const { migrate } = require('../src/services/migrate');
+    assert.deepEqual(await migrate(), ['station address', 'station pin on Riverside Street']);
+    const s = await one('SELECT * FROM station_settings WHERE setting_id = 1');
+    assert.equal(s.station_address, '98 Riverside Street, Barangay Commonwealth, Quezon City');
+    assert.equal(Number(s.station_latitude), 14.692823);
+    assert.deepEqual(await migrate(), [], 'second run changes nothing');
+  });
+});

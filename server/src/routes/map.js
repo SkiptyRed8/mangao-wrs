@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
     : [];
   const t = now().getTime();
   res.json({
-    station: { lat: station.lat, lng: station.lng },
+    station: { lat: station.lat, lng: station.lng, address: (await require('../services/settings').stationSettings()).station.address },
     riders: riders.map((r) => ({
       id: r.user_id,
       name: r.role === 'Owner' ? 'Owner' : r.full_name,

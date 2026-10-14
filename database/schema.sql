@@ -77,6 +77,7 @@ CREATE TABLE station_settings (
   station_latitude DECIMAL(10,7) NULL,
   station_longitude DECIMAL(10,7) NULL,
   station_phone VARCHAR(15) NULL,
+  station_address VARCHAR(255) NULL COMMENT 'Shown on reports and the live map',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB COMMENT='One row of station settings';
 
@@ -269,6 +270,8 @@ INSERT INTO users (user_id, full_name, phone_number, email, password_hash, role)
 VALUES (1, 'Owner', '09170000001', 'owner@example.com', '-', 'Owner');
 
 INSERT INTO prices (item_type, amount) VALUES ('Refill Walk-in', 30.00), ('Refill Delivery', 35.00), ('Package', 150.00);
-INSERT INTO station_settings (setting_id, tank_limit, seals_per_gallon) VALUES (1, 60, 3);
+-- Station: 98 Riverside Street, Barangay Commonwealth, Quezon City (the owner moves the pin to the exact spot in Prices & Settings > Station location).
+INSERT INTO station_settings (setting_id, tank_limit, seals_per_gallon, station_latitude, station_longitude, station_address)
+VALUES (1, 60, 3, 14.6928230, 121.0871699, '98 Riverside Street, Barangay Commonwealth, Quezon City');
 INSERT INTO inventory_items (item_name, quantity_on_hand, low_stock_level) VALUES ('New Gallon', 0, 30), ('Seal', 0, 60);
 INSERT INTO tank_cycles (gallons_count, tank_limit) VALUES (0, 60);

@@ -5,7 +5,7 @@ const { Router } = require('express');
 const { query, transaction } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { bad } = require('../utils/errors');
-const { int } = require('../utils/validate');
+const { int, text } = require('../utils/validate');
 const { ITEMS, currentPrices, stationSettings } = require('../services/settings');
 
 const router = Router();
@@ -73,17 +73,22 @@ router.put('/low-stock', async (req, res) => {
   res.json({ ...(await stationSettings()), message: 'Warnings use the new levels.' });
 });
 
-// PUT /api/settings/location { lat, lng } -> settings (Quezon City area)
+// PUT /api/settings/location { lat, lng, address } -> settings (Quezon City area)
 router.put('/location', async (req, res) => {
   const lat = Number((req.body || {}).lat);
   const lng = Number((req.body || {}).lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 4 || lat > 22 || lng < 116 || lng > 127) {
     throw bad('LOCATION_INVALID', 'Location not valid', 'Move the pin to the station and try again.');
   }
+  const address = text((req.body || {}).address, 255);
+  if ((req.body || {}).address !== undefined && !address) {
+    throw bad('ADDRESS_MISSING', 'Address missing', 'Type the station address.', { field: 'address' });
+  }
   await query('UPDATE station_settings SET station_latitude = ?, station_longitude = ? WHERE setting_id = 1', [
     lat.toFixed(7),
     lng.toFixed(7),
   ]);
+  if (address) await query('UPDATE station_settings SET station_address = ? WHERE setting_id = 1', [address]);
   res.json({ ...(await stationSettings()), message: 'Distances use the new location.' });
 });
 

@@ -160,7 +160,10 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                   point: start,
                   width: 34,
                   height: 34,
-                  child: const Tooltip(message: 'Station', child: Icon(Icons.store_mall_directory, color: Brand.ink, size: 30)),
+                  child: Tooltip(
+                    message: 'Station${(station['address'] ?? '') == '' ? '' : ': ${station['address']}'}',
+                    child: const Icon(Icons.store_mall_directory, color: Brand.ink, size: 30),
+                  ),
                 ),
               for (final o in orders.cast<Map<String, dynamic>>())
                 if (o['lat'] != null)
