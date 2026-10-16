@@ -18,6 +18,7 @@ import org.springframework.context.event.EventListener;
  * first Node.js server, so the Flutter app works the same.
  *   java -jar mangao-wrs-server.jar                     start the server
  *   java -jar mangao-wrs-server.jar --setup-db [--demo] build the database (RESET-DEMO-DATA.bat)
+ *   java -jar mangao-wrs-server.jar --mail-test         send a test email (TEST-EMAIL.bat)
  */
 @SpringBootApplication
 public class WrsApplication {
@@ -30,6 +31,7 @@ public class WrsApplication {
   public static void main(String[] args) throws Exception {
     Env.load(Path.of(System.getProperty("wrs.home", ".")));
     List<String> a = Arrays.asList(args);
+    if (a.contains("--mail-test")) System.exit(com.mangao.wrs.service.Mail.selfTest());
     if (a.contains("--setup-db")) {
       try {
         SetupDb.run(a.contains("--demo"), Env.dbName(), false);

@@ -422,10 +422,11 @@ async function javaRealtime() {
   assert.equal(refused, 'Please log in');
   try {
     const placed = await as(ana, api().post('/api/orders')).send({ type: 'Refill', quantity: 1, address: typed });
-    const ev = await ownerSock.next('order');
-    assert.equal(ev.id, placed.body.order.id);
+    // The server keeps running between tests, so skip any late event about an earlier order.
+    const forOrder = async (sock, id) => { let e = await sock.next('order'); while (e.id !== id) e = await sock.next('order'); return e; };
+    const ev = await forOrder(ownerSock, placed.body.order.id);
     assert.equal(ev.status, 'New');
-    assert.equal((await anaSock.next('order')).id, placed.body.order.id);
+    assert.equal((await forOrder(anaSock, placed.body.order.id)).id, placed.body.order.id);
     await as(owner, api().post(`/api/admin/orders/${placed.body.order.id}/decline`)).send({ reason: 'Closed' });
     let n = await anaSock.next('notification');
     while (n.title !== 'Order declined') n = await anaSock.next('notification');

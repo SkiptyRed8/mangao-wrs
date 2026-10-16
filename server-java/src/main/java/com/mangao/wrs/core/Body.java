@@ -41,10 +41,10 @@ public final class Body {
 
   /** text(v, max): trimmed text cut to max length; '' when missing. */
   public String text(String k, int max) {
-    return text(m.get(k), max);
+    return textOf(m.get(k), max);
   }
 
-  public static String text(Object v, int max) {
+  public static String textOf(Object v, int max) {
     if (v == null) return "";
     String s = V.str(v).strip();
     return s.length() > max ? s.substring(0, max) : s;

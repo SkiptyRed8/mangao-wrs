@@ -2,7 +2,8 @@
 rem ==========================================================================================
 rem  Mangao WRS - one double-click to run the whole system on this laptop.
 rem    1. MySQL     starts it if it is not running
-rem    2. Database  creates the mangao_wrs database ONLY if it does not exist yet (your data is kept)
+rem    2. Server    builds the Java (Spring Boot) server when its code changed; creates the mangao_wrs
+rem                 database ONLY if it does not exist yet (your data is kept)
 rem    3. Server    starts it if it is not running (http://localhost:3100)
 rem    4. App       opens the app in Chrome (http://localhost:5100)
 rem  Nothing is ever deleted by this file. To start over with clean demo data use RESET-DEMO-DATA.bat
@@ -36,23 +37,46 @@ pause
 exit /b 1
 :mysql_ok
 
-echo [2/4] Database
-cd /d "%ROOT%server"
-if not exist .env copy .env.example .env >nul
-rem Install the server libraries the first time, and again whenever package-lock.json changes.
-set "NEEDNPM=0"
-if not exist node_modules\.mangao-lock set "NEEDNPM=1"
-if exist node_modules\.mangao-lock fc /b package-lock.json node_modules\.mangao-lock >nul 2>&1 || set "NEEDNPM=1"
-if "%NEEDNPM%"=="1" (
-  echo       installing the server libraries ^(needs internet; only when they change^)...
-  call npm install --no-audit --no-fund
-  if errorlevel 1 (echo       npm install failed - check the internet connection, then run START.bat again. & pause & exit /b 1)
-  copy /y package-lock.json node_modules\.mangao-lock >nul
+echo [2/4] Java server and database
+call "%ROOT%tools\java-home.bat"
+if errorlevel 1 (
+  echo       The Java JDK was not found. Double-click SETUP-JAVA.bat first ^(one time^), then START.bat again.
+  pause & exit /b 1
+)
+set "MVN=%ROOT%tools\maven\apache-maven-3.9.9\bin\mvn.cmd"
+if not exist "%MVN%" (
+  echo       Maven is not set up yet. Double-click SETUP-JAVA.bat first ^(one time^), then START.bat again.
+  pause & exit /b 1
+)
+cd /d "%ROOT%server-java"
+rem Settings: the first time, keep the old server's settings (Gmail App Password, owner account).
+if not exist .env (
+  if exist "%ROOT%server\.env" (copy "%ROOT%server\.env" .env >nul) else (copy .env.example .env >nul)
+)
+rem Damaged-gallon photos saved by the old server.
+if exist "%ROOT%server\uploads\damage" if not exist uploads\damage (
+  mkdir uploads\damage >nul 2>&1
+  xcopy /e /i /q /y "%ROOT%server\uploads\damage" uploads\damage >nul
+)
+rem Build the server when the code changed (or the first time).
+set "NEEDBUILD=1"
+if exist target\mangao-wrs-server.jar (
+  powershell -NoProfile -Command "$jar=(Get-Item 'target\mangao-wrs-server.jar').LastWriteTime; $src=Get-ChildItem -Recurse -File src,pom.xml | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if($src.LastWriteTime -gt $jar){exit 1}else{exit 0}"
+  if not errorlevel 1 set "NEEDBUILD=0"
+)
+if "%NEEDBUILD%"=="1" (
+  echo       building the server ^(about a minute; only when the code changes^)...
+  call "%MVN%" -B -q -o package -DskipTests > "%ROOT%logs\build.log" 2>&1
+  if errorlevel 1 call "%MVN%" -B -q package -DskipTests > "%ROOT%logs\build.log" 2>&1
+  if not exist target\mangao-wrs-server.jar (
+    echo       The build failed. See logs\build.log
+    pause & exit /b 1
+  )
 )
 "%BIN%\mysql.exe" -u root -e "USE mangao_wrs" >nul 2>&1
 if errorlevel 1 (
   echo       creating the mangao_wrs database with the demo accounts ^(first time only^)...
-  call npm run db:demo
+  "%JAVA_HOME%\bin\java.exe" -jar target\mangao-wrs-server.jar --setup-db --demo
   if errorlevel 1 (echo       Database setup failed - see the message above. & pause & exit /b 1)
 ) else (
   echo       mangao_wrs is ready ^(your data is kept^).
@@ -61,8 +85,14 @@ if errorlevel 1 (
 echo [3/4] Server
 call :server_ping
 if not errorlevel 1 (echo       running. & goto server_ok)
+call :old_ping
+if not errorlevel 1 (
+  echo       The old Node.js server is still running. Close the window named "Mangao WRS server",
+  echo       then press any key here to start the Java server.
+  pause >nul
+)
 start "Mangao WRS server" cmd /k call "%ROOT%tools\run-server.bat"
-for /L %%i in (1,1,30) do (
+for /L %%i in (1,1,60) do (
   call :server_ping && (echo       running. & goto server_ok)
   timeout /t 1 /nobreak >nul
 )
@@ -106,5 +136,11 @@ for /L %%i in (1,1,25) do (
 exit /b 1
 
 :server_ping
-node -e "require('http').get('http://localhost:3100/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(d.includes('mangao-system')?0:1))}).on('error',()=>process.exit(1))" >nul 2>&1
+rem The Java server answers /health with "server":"java".
+powershell -NoProfile -Command "try{$r=Invoke-WebRequest -UseBasicParsing 'http://localhost:3100/health' -TimeoutSec 2; if($r.Content -match 'server.\s*:\s*.java'){exit 0}else{exit 1}}catch{exit 1}" >nul 2>&1
+exit /b %errorlevel%
+
+:old_ping
+rem The first (Node.js) server is still running on port 3100.
+powershell -NoProfile -Command "try{$r=Invoke-WebRequest -UseBasicParsing 'http://localhost:3100/health' -TimeoutSec 2; if($r.Content -match 'mangao-system'){exit 0}else{exit 1}}catch{exit 1}" >nul 2>&1
 exit /b %errorlevel%

@@ -59,6 +59,8 @@ public class Push {
     }
     try {
       Path p = Env.baseDir().resolve(file);
+      // .env copied from the old server folder: a relative key path still points there.
+      if (!Files.exists(p) && Files.exists(Env.baseDir().resolve("../server").resolve(file))) p = Env.baseDir().resolve("../server").resolve(file);
       creds = json.readValue(Files.readString(p), Map.class);
       System.out.println("[push] Firebase project " + creds.get("project_id") + ": push notifications on");
     } catch (Exception e) {

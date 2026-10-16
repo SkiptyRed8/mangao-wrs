@@ -93,7 +93,7 @@ public class InventoryApi {
       params.add(ITEMS.get(item));
     }
     if ("Automatic".equals(type)) where.add("(m.order_id IS NOT NULL OR m.recorded_by IS NULL)");
-    else if (List.of("Added", "Damaged", "Lost").contains(type)) {
+    else if (type != null && List.of("Added", "Damaged", "Lost").contains(type)) {
       where.add("m.movement_type = ? AND m.order_id IS NULL");
       params.add(type);
     }

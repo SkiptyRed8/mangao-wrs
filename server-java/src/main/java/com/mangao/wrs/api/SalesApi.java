@@ -84,7 +84,7 @@ public class SalesApi {
   @GetMapping("/unpaid")
   public Map<String, Object> unpaid(HttpServletRequest req, @RequestParam(required = false) String q) {
     auth.require(req, "Owner");
-    String query = Body.text(q, 60);
+    String query = Body.textOf(q, 60);
     List<Map<String, Object>> list = customers.unpaidAccounts(query);
     List<Map<String, Object>> all = query.isEmpty() ? list : customers.unpaidAccounts("");
     double total = 0;

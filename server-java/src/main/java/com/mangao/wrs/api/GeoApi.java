@@ -102,7 +102,7 @@ public class GeoApi {
   /** GET /api/geo/search?q= -> { results: [{ label, lat, lng }] } (Quezon City only) */
   @GetMapping("/search")
   public Map<String, Object> search(@RequestParam(required = false) String q) {
-    String text = Body.text(q, 100);
+    String text = Body.textOf(q, 100);
     if (text.length() < 3) return M.of("results", List.of());
     String key = "/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q="
         + URLEncoder.encode(text, StandardCharsets.UTF_8).replace("+", "%20");

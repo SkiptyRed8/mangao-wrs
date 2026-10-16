@@ -66,6 +66,41 @@ public class Mail {
     return "See the message above.";
   }
 
+  /** TEST-EMAIL.bat: checks the Gmail settings in .env and sends one test email to SMTP_USER. Returns the exit code. */
+  public static int selfTest() {
+    String user = Env.smtpUser(), pass = Env.smtpPass();
+    System.out.println();
+    if (user.isEmpty() || pass.isEmpty()) {
+      System.out.println("SMTP_USER or SMTP_PASS is empty in server-java\\.env. Fill both, save, and run this again.");
+      return 1;
+    }
+    System.out.println("Gmail account : " + user);
+    System.out.println("App Password  : " + pass.length() + " letters");
+    System.out.println("Server        : " + Env.smtpHost() + ":" + Env.smtpPort());
+    if (!user.toLowerCase().matches("^[^\\s@]+@gmail\\.com$")) System.out.println("  ! SMTP_USER should be the full Gmail address, e.g. yourname@gmail.com");
+    if (pass.length() != 16) System.out.println("  ! SMTP_PASS has " + pass.length() + " letters; a Google App Password has 16 (spaces do not matter)");
+    if (!pass.matches("^[A-Za-z]+$")) System.out.println("  ! SMTP_PASS has numbers or symbols; an App Password is letters only. Did you type your normal Gmail password?");
+    System.out.println("\nLogging in to Gmail...");
+    try {
+      JavaMailSenderImpl s = new Mail().sender();
+      s.testConnection();
+      System.out.println("Login OK. Sending a test email to " + user + " ...");
+      MimeMessage msg = s.createMimeMessage();
+      MimeMessageHelper h = new MimeMessageHelper(msg, false, "UTF-8");
+      h.setFrom(new jakarta.mail.internet.InternetAddress(Env.mailFrom()));
+      h.setTo(user);
+      h.setSubject("Mangao WRS test email");
+      h.setText("Email works. Forgot password codes will arrive like this.");
+      s.send(msg);
+      System.out.println("\nDONE: test email sent. Check the inbox (or Spam) of " + user + ".");
+      return 0;
+    } catch (Exception e) {
+      System.out.println("\nFAILED: " + String.valueOf(e.getMessage()).split("\n")[0]);
+      System.out.println("What to do: " + hint(e));
+      return 1;
+    }
+  }
+
   /** Sends the 6-digit reset code. Returns true when sent, false when email is not set up. */
   public boolean sendResetCode(String to, String name, String code) throws Exception {
     if (!ready()) {

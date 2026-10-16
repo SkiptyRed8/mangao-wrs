@@ -13,9 +13,10 @@ if errorlevel 1 (
   echo MySQL is not running. Double-click START.bat first ^(or press Start in XAMPP^), then run this again.
   pause & exit /b 1
 )
-cd /d "%~dp0server"
-if not exist .env copy .env.example .env >nul
-if not exist node_modules call npm install --no-audit --no-fund
-call npm run db:demo
+call "%~dp0tools\java-home.bat"
+if errorlevel 1 (echo The Java JDK was not found. Run SETUP-JAVA.bat first. & pause & exit /b 1)
+cd /d "%~dp0server-java"
+if not exist target\mangao-wrs-server.jar (echo The server is not built yet. Run START.bat once first. & pause & exit /b 1)
+"%JAVA_HOME%\bin\java.exe" -jar target\mangao-wrs-server.jar --setup-db --demo
 echo.
 pause

@@ -1,10 +1,13 @@
 # Mangao WRS - Order, Inventory, Sales & Delivery Management System
 
 Mangao Water Refilling Station. Flutter app (tested in Chrome on the laptop, released as an Android APK),
-Node.js + Express server, MySQL database.
+Java + Spring Boot server (backend), MySQL database.
 
-## Run it (Windows laptop with XAMPP, Node.js and Flutter)
-Double-click **START.bat**. It starts MySQL, creates the database the first time, starts the server and
+## Run it (Windows laptop with XAMPP, Java JDK 17 or newer, and Flutter)
+First time only: double-click **SETUP-JAVA.bat** (downloads Maven and the server libraries; needs internet).
+
+Double-click **START.bat**. It starts MySQL, builds the Java server when its code changed, creates the
+database the first time, starts the server and
 opens the app in Chrome. Keep the windows it opens.
 
 | Role | Phone | Password |
@@ -14,15 +17,17 @@ opens the app in Chrome. Keep the windows it opens.
 | Rider | 09170000003 | rider123 |
 | Customer | 09172001111 | ana123 |
 
+- **TEST-EMAIL.bat** - checks the Gmail settings in `server-java\.env` and sends one test email.
 - **RESET-DEMO-DATA.bat** - start over with clean demo data (removes the mangao_wrs database through MySQL).
 - Never delete folders in `C:\xampp\mysql\data` by hand. Stop MySQL before shutting down the laptop.
-- Troubleshooting: `logs\server.log` and `logs\app.log`; the server check is http://localhost:3100/health
+- Troubleshooting: `logs\server.log`, `logs\build.log` and `logs\app.log`; the server check is http://localhost:3100/health
 
 ## Folders
 | Folder | What it is |
 |---|---|
 | `app/` | Flutter app (Dart). Screens in `app/lib/screens/` by role: `auth`, `owner`, `staff`, `rider`, `customer`, `common` |
-| `server/` | Node.js + Express API (JavaScript). Routes in `server/src/routes/`, tests in `server/test/` (`npm test`) |
+| `server-java/` | **The backend**: Java + Spring Boot API. Endpoints in `src/main/java/com/mangao/wrs/api/`, business rules in `service/`, settings in `server-java\.env` |
+| `server/` | The first Node.js server, kept for reference, and the API tests in `server/test/` (81 tests; they also run against the Java server with `API_URL=http://localhost:3100`) |
 | `database/schema.sql` | MySQL tables |
 | `tools/` | Helper scripts used by START.bat |
 

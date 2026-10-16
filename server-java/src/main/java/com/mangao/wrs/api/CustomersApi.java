@@ -60,7 +60,7 @@ public class CustomersApi {
   @GetMapping
   public Map<String, Object> list(HttpServletRequest req, @RequestParam(required = false) String q) {
     auth.require(req, "Owner");
-    String query = Body.text(q, 60).toLowerCase();
+    String query = Body.textOf(q, 60).toLowerCase();
     List<Map<String, Object>> rows = db.query(
         "SELECT k.ckey AS ckey, MAX(k.cuid) AS uid,"
             + " SUBSTRING_INDEX(GROUP_CONCAT(k.customer_name ORDER BY k.created_at DESC SEPARATOR '\\n'), '\\n', 1) AS name,"

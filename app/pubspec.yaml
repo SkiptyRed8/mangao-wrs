@@ -16,8 +16,8 @@ dependencies:
   latlong2: ^0.9.1
   geolocator: ^14.0.2
   url_launcher: ^6.3.1
-  # Real-time updates from the server (Socket.IO)
-  socket_io_client: ^3.0.2
+  # Real-time updates from the server (WebSocket, Java server)
+  web_socket_channel: ^3.0.3
   # Photo of a damaged gallon (camera or gallery; file picker in Chrome)
   image_picker: ^1.1.2
 

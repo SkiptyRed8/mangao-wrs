@@ -252,7 +252,12 @@ public class Export {
         sum.addCell(c);
       }
     }
-    sum.completeRow();
+    if (r.summary().size() % 2 == 1) {
+      PdfPCell blank = new PdfPCell(new Phrase(""));
+      blank.setBorder(Rectangle.NO_BORDER);
+      blank.setColspan(2);
+      sum.addCell(blank);
+    }
     doc.add(sum);
 
     // Tables

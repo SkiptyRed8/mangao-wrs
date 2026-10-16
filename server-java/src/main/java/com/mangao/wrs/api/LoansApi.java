@@ -84,7 +84,7 @@ public class LoansApi {
       where.add("l.order_id = ?");
       params.add(StaffApi.idOf(orderId));
     }
-    String text = Body.text(q, 60);
+    String text = Body.textOf(q, 60);
     if (!text.isEmpty()) {
       where.add("(l.customer_name LIKE ? OR l.contact_phone LIKE ?)");
       String digits = text.replaceAll("\\D", "");

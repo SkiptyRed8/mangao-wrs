@@ -151,7 +151,7 @@ public class Orders {
         "notes", V.s(o.get("notes")),
         "status", o.get("status"),
         "payment", pay,
-        "paymentText", PAYMENT_TEXT.getOrDefault(pay, pay),
+        "paymentText", pay == null ? null : PAYMENT_TEXT.getOrDefault(pay, pay),
         "paymentStatus", o.get("payment_status"),
         "riderId", V.longOrNull(o.get("rider_id")),
         "riderName", V.truthy(o.get("rider_name")) ? o.get("rider_name") : null,
