@@ -1,8 +1,7 @@
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { freshDb, api, closeDb, loginAs } = require('./helpers');
+const { freshDb, api, closeDb, loginAs, setNow } = require('./helpers');
 const { one, query } = require('../src/db');
-const { setNow } = require('../src/services/time');
 
 let ana, maria, owner, staff;
 before(async () => {

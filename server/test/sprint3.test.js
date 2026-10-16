@@ -1,7 +1,7 @@
 // Sprint 3 (steps 33-42).
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { freshDb, api, closeDb, loginAs } = require('./helpers');
+const { freshDb, api, closeDb, loginAs, setNow, API_URL } = require('./helpers');
 const { one, query } = require('../src/db');
 
 let owner, staff, rider, ana;
@@ -72,6 +72,7 @@ describe('Live location and live map (step 34)', () => {
 
 describe('Real-time updates (step 35)', () => {
   test('owner and the customer get an "order" event when an order changes; the customer gets the notification', async () => {
+    if (API_URL) return javaRealtime();
     const http = require('http');
     const { io: connect } = require('socket.io-client');
     const realtime = require('../src/services/realtime');
@@ -82,9 +83,11 @@ describe('Real-time updates (step 35)', () => {
     const ownerSock = connect(url, { auth: { token: owner }, transports: ['websocket'] });
     const anaSock = connect(url, { auth: { token: ana }, transports: ['websocket'] });
     const bad = connect(url, { auth: {}, transports: ['websocket'] });
+    const badRefused = new Promise((r) => bad.on('connect_error', (e) => r(e.message)));
+    const connected = [ownerSock, anaSock].map((s) => (s.connected ? Promise.resolve() : new Promise((r, j) => { s.on('connect', r); s.on('connect_error', j); })));
     try {
-      await Promise.all([ownerSock, anaSock].map((s) => new Promise((r, j) => { s.on('connect', r); s.on('connect_error', j); })));
-      const refused = await new Promise((r) => bad.on('connect_error', (e) => r(e.message)));
+      await Promise.all(connected);
+      const refused = await badRefused;
       assert.equal(refused, 'Please log in');
 
       const ownerGot = new Promise((r) => ownerSock.on('order', r));
@@ -147,8 +150,7 @@ describe('Weekly Sales Report (step 37)', () => {
     // Wednesday Oct 7, 2026 (last week) and Wednesday Oct 14, 2026 (this week), 10:00 Philippine time.
     await add(new Date('2026-10-07T10:00:00+08:00'), 70, 2);
     await add(new Date('2026-10-14T10:00:00+08:00'), 140, 4);
-    const time = require('../src/services/time');
-    time.setNow(new Date('2026-10-15T09:00:00+08:00'));
+    setNow('2026-10-15T09:00:00+08:00');
     try {
       const r = await as(owner, api().get('/api/sales/weekly?start=2026-10-14'));
       assert.equal(r.status, 200);
@@ -166,7 +168,7 @@ describe('Weekly Sales Report (step 37)', () => {
       assert.equal(future.body.error.title, 'No sales yet');
       assert.equal((await as(staff, api().get('/api/sales/weekly'))).status, 403);
     } finally {
-      time.setNow(null);
+      setNow(null);
     }
   });
 });
@@ -387,3 +389,49 @@ describe('Customers list and records (step 42)', () => {
     assert.equal((await as(staff, api().get('/api/customers'))).status, 403);
   });
 });
+
+/** Java server: plain WebSocket at /ws?token= (or ?guest=); messages are { event, data }. */
+async function javaRealtime() {
+  const wsUrl = API_URL.replace(/^http/, 'ws') + '/ws';
+  const open = (q) =>
+    new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${wsUrl}?${q}`);
+      const events = [];
+      const waiters = [];
+      ws.addEventListener('message', (m) => {
+        const msg = JSON.parse(m.data);
+        events.push(msg);
+        for (const w of [...waiters]) if (w.name === msg.event) { waiters.splice(waiters.indexOf(w), 1); w.resolve(msg.data); }
+      });
+      ws.next = (name) => new Promise((r) => {
+        const i = events.findIndex((e) => e.event === name);
+        if (i >= 0) return r(events.splice(i, 1)[0].data);
+        waiters.push({ name, resolve: r });
+      });
+      ws.addEventListener('open', () => resolve(ws));
+      ws.addEventListener('close', (e) => reject(Object.assign(new Error(e.reason), { code: e.code })));
+      ws.addEventListener('error', () => {});
+    });
+  const ownerSock = await open(`token=${encodeURIComponent(owner)}`);
+  const anaSock = await open(`token=${encodeURIComponent(ana)}`);
+  const refused = await new Promise((r) => {
+    const bad = new WebSocket(wsUrl);
+    bad.addEventListener('close', (e) => r(e.reason));
+    bad.addEventListener('error', () => {});
+  });
+  assert.equal(refused, 'Please log in');
+  try {
+    const placed = await as(ana, api().post('/api/orders')).send({ type: 'Refill', quantity: 1, address: typed });
+    const ev = await ownerSock.next('order');
+    assert.equal(ev.id, placed.body.order.id);
+    assert.equal(ev.status, 'New');
+    assert.equal((await anaSock.next('order')).id, placed.body.order.id);
+    await as(owner, api().post(`/api/admin/orders/${placed.body.order.id}/decline`)).send({ reason: 'Closed' });
+    let n = await anaSock.next('notification');
+    while (n.title !== 'Order declined') n = await anaSock.next('notification');
+    assert.equal(n.message, 'Closed');
+  } finally {
+    ownerSock.close();
+    anaSock.close();
+  }
+}

@@ -78,11 +78,11 @@ describe('Station address and pin (Oct 14)', () => {
     const { query, one } = require('../src/db');
     await query('ALTER TABLE station_settings DROP COLUMN station_address');
     await query('UPDATE station_settings SET station_latitude = 14.6976, station_longitude = 121.0886 WHERE setting_id = 1');
-    const { migrate } = require('../src/services/migrate');
-    assert.deepEqual(await migrate(), ['station address', 'station pin on Riverside Street']);
+    const { migrateDb } = require('./helpers');
+    assert.deepEqual(await migrateDb(), ['station address', 'station pin on Riverside Street']);
     const s = await one('SELECT * FROM station_settings WHERE setting_id = 1');
     assert.equal(s.station_address, '98 Riverside Street, Barangay Commonwealth, Quezon City');
     assert.equal(Number(s.station_latitude), 14.692823);
-    assert.deepEqual(await migrate(), [], 'second run changes nothing');
+    assert.deepEqual(await migrateDb(), [], 'second run changes nothing');
   });
 });

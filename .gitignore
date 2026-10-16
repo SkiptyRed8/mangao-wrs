@@ -19,3 +19,5 @@ app/android/app/build/
 server/firebase-key.json
 server-java/target/
 tools/maven/
+server-java/.env
+server-java/uploads/
