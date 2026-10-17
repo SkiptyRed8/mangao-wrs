@@ -117,6 +117,15 @@ echo    Staff     09170000002 / staff123
 echo    Rider     09170000003 / rider123
 echo    Customer  09172001111 / ana123
 echo.
+rem Laptop address for phones on the same Wi-Fi or hotspot (backup to the online server).
+set "LANIP="
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)' } | Sort-Object InterfaceMetric | Select-Object -First 1).IPAddress"`) do set "LANIP=%%a"
+if defined LANIP (
+  echo  Phone backup ^(same Wi-Fi or hotspot^): long-press the logo in the app and type
+  echo    http://%LANIP%:3100
+  echo  If Windows asks to allow Java on the network, tick Private networks and press Allow.
+  echo.
+)
 echo  Keep the MySQL, server and app windows open while you use the system.
 echo  Before shutting down the laptop: close the app window, then stop MySQL in XAMPP
 echo  (or close the "MySQL - keep this window open" window).

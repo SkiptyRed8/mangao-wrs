@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config.dart';
 import '../models/user.dart';
 import 'api.dart';
 import 'realtime.dart';
@@ -39,6 +40,7 @@ class AppState extends ChangeNotifier {
 
   /// Called when the app opens: already logged in -> that role's Home; otherwise Welcome.
   Future<void> load() async {
+    await AppConfig.load();
     final prefs = await SharedPreferences.getInstance();
     guestToken = prefs.getString(_kGuestToken);
     guest = prefs.getBool(_kGuest) ?? false;

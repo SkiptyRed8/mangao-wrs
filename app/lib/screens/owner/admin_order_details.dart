@@ -162,10 +162,12 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
               icon: const Icon(Icons.more_vert),
               color: Colors.white,
               onSelected: (v) async {
-                var changed = false;
-                if (v == 'damaged') changed = await reportDamaged(context, o);
-                if (v == 'rider') changed = await changeRider(context, o);
-                if (v == 'cancel') changed = await cancelOrder(context, o);
+                final changed = switch (v) {
+                  'damaged' => await reportDamaged(context, o),
+                  'rider' => await changeRider(context, o),
+                  'cancel' => await cancelOrder(context, o),
+                  _ => false,
+                };
                 if (changed) await reload();
               },
               itemBuilder: (_) => [

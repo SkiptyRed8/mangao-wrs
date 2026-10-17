@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../config.dart';
@@ -35,6 +36,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (mounted) setState(() => _server = ok);
   }
 
+  Future<void> _serverSettings() async {
+    final changed = await showDialog<bool>(context: context, builder: (_) => const _ServerDialog());
+    if (changed == true && mounted) {
+      setState(() => _server = null);
+      await _check();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +52,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
           child: Column(children: [
             const Spacer(flex: 3),
-            const Logo(),
+            // Long-press the logo: server address (backup, e.g. the laptop on the same Wi-Fi).
+            GestureDetector(onLongPress: _serverSettings, child: const Logo()),
             const Gap(14),
             const Text(AppConfig.stationName,
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
@@ -57,7 +67,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             _ServerLine(_server, onRetry: () {
               setState(() => _server = null);
               _check();
-            }),
+            }, onSettings: _serverSettings),
           ]),
         ),
       ),
@@ -69,21 +79,102 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 class _ServerLine extends StatelessWidget {
   final bool? ok;
   final VoidCallback onRetry;
-  const _ServerLine(this.ok, {required this.onRetry});
+  final VoidCallback onSettings;
+  const _ServerLine(this.ok, {required this.onRetry, required this.onSettings});
 
   @override
   Widget build(BuildContext context) {
-    if (ok == true) return const SizedBox(height: 20);
-    return InkWell(
-      onTap: onRetry,
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(ok == null ? Icons.sync : Icons.cloud_off, size: 16, color: ok == null ? Brand.muted : Brand.red),
-        const SizedBox(width: 6),
-        Text(
-          ok == null ? 'Checking the server...' : 'Server not running. Start it, then tap here.',
-          style: TextStyle(fontSize: 12.5, color: ok == null ? Brand.muted : Brand.red, fontWeight: FontWeight.w600),
+    if (ok == true) {
+      if (!AppConfig.custom) return const SizedBox(height: 20);
+      return Text('Server: ${AppConfig.apiUrl}', style: const TextStyle(fontSize: 11.5, color: Brand.muted));
+    }
+    final waiting = ok == null;
+    final color = waiting ? Brand.muted : Brand.red;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      InkWell(
+        onTap: onRetry,
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(waiting ? Icons.sync : Icons.cloud_off, size: 16, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              waiting
+                  ? 'Connecting to the server...'
+                  : kIsWeb
+                      ? 'Server not running. Start it, then tap here.'
+                      : 'Cannot reach the server. Check the internet, then tap here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+      ),
+      if (!waiting) TextButton(onPressed: onSettings, child: const Text('Server address')),
+    ]);
+  }
+}
+
+/// Server address (backup): type the laptop address shown by START.bat, or go back to the built-in one.
+class _ServerDialog extends StatefulWidget {
+  const _ServerDialog();
+
+  @override
+  State<_ServerDialog> createState() => _ServerDialogState();
+}
+
+class _ServerDialogState extends State<_ServerDialog> {
+  late final _text = TextEditingController(text: AppConfig.apiUrl);
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final url = AppConfig.clean(_text.text);
+    if (url == null) {
+      setState(() => _error = 'Type an address like http://192.168.1.5:3100');
+      return;
+    }
+    await AppConfig.choose(url);
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  Future<void> _reset() async {
+    await AppConfig.choose(null);
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Server address'),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Built-in: ${AppConfig.defaultUrl}', style: const TextStyle(fontSize: 12.5, color: Brand.muted)),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _text,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          decoration: InputDecoration(
+            labelText: 'Address',
+            hintText: 'http://192.168.1.5:3100',
+            errorText: _error,
+            border: const OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => _save(),
         ),
+        const SizedBox(height: 8),
+        const Text('For the laptop server: phone and laptop on the same Wi-Fi or hotspot; START.bat shows the address.',
+            style: TextStyle(fontSize: 12, color: Brand.muted)),
       ]),
+      actions: [
+        if (AppConfig.custom) TextButton(onPressed: _reset, child: const Text('Use built-in')),
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        TextButton(onPressed: _save, child: const Text('Save')),
+      ],
     );
   }
 }

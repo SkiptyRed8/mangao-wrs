@@ -1,4 +1,4 @@
-/// Money, phone numbers and times the way the wireframes show them.
+// Money, phone numbers and times the way the wireframes show them.
 
 /// ₱1,310.00
 String peso(num v) {

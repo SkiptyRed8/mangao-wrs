@@ -14,7 +14,7 @@ class RtEvent {
 }
 
 /// Real-time updates (step 35) over a WebSocket to the Java server: ws://server:3100/ws?token=...
-/// (guests: ?guest=<guest phone code>). Each message is JSON { "event": name, "data": {...} }.
+/// (guests: ?guest=GUEST_CODE). Each message is JSON { "event": name, "data": {...} }.
 /// Screens listen to [events] and reload by themselves; they still check every minute in case the
 /// connection drops. The connection comes back by itself after a few seconds.
 class Realtime {
@@ -62,7 +62,11 @@ class Realtime {
         onError: (_) => _lost(),
         cancelOnError: true,
       );
-      ws.ready.then((_) => _connected = true).catchError((_) {});
+      ws.ready.then((_) {
+        _connected = true;
+      }).catchError((_) {
+        // stream onError handles a failed connection
+      });
       _ping?.cancel();
       _ping = Timer.periodic(const Duration(seconds: 25), (_) {
         try {

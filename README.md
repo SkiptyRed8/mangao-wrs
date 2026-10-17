@@ -6,6 +6,8 @@ Java + Spring Boot server (backend), MySQL database.
 ## Run it (Windows laptop with XAMPP, Java JDK 17 or newer, and Flutter)
 First time only: double-click **SETUP-JAVA.bat** (downloads Maven and the server libraries; needs internet).
 
+Phones and online server: see **docs/GO-ONLINE.md** (Android APK from GitHub Releases).
+
 Double-click **START.bat**. It starts MySQL, builds the Java server when its code changed, creates the
 database the first time, starts the server and
 opens the app in Chrome. Keep the windows it opens.

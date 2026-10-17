@@ -23,9 +23,12 @@ class ApiException implements Exception {
   String toString() => '$title: $message';
 }
 
-/// Talks to the Node.js + Express server (REST API, JSON).
+/// Talks to the Java (Spring Boot) server (REST API, JSON).
 class Api {
-  final String baseUrl;
+  final String? _baseUrl;
+
+  /// The server address; follows AppConfig when the address is changed on the Welcome screen.
+  String get baseUrl => _baseUrl ?? AppConfig.apiUrl;
   final http.Client _client;
   String? token;
 
@@ -33,7 +36,7 @@ class Api {
   String? guestToken;
 
   Api({String? baseUrl, http.Client? client})
-      : baseUrl = baseUrl ?? AppConfig.apiUrl,
+      : _baseUrl = baseUrl,
         _client = client ?? http.Client();
 
   Future<Map<String, dynamic>> get(String path) => _send('GET', path);
