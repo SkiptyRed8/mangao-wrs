@@ -21,4 +21,5 @@ server-java/target/
 tools/maven/
 server-java/.env
 server-java/uploads/
-tools/shots/out/\ntools/shots/node_modules/
+tools/shots/out/
+tools/shots/node_modules/

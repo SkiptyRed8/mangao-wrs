@@ -67,7 +67,9 @@ async function open(browser, session) {
 }
 
 async function shot(page, name, wait = 1500) {
-  await sleep(wait);
+  // Move the pointer off the tab bar so no tooltip stays on the picture.
+  await page.mouse.move(206, 330);
+  await sleep(wait + 1500);
   await page.screenshot({ path: `${OUT}/${name}.png` });
   say('shot', name);
 }
