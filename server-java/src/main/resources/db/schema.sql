@@ -217,6 +217,13 @@ CREATE TABLE damage_reports (
   CONSTRAINT fk_damage_user FOREIGN KEY (reported_by) REFERENCES users (user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB COMMENT='Damaged customer gallons (photo and note); a new gallon is taken from stock';
 
+CREATE TABLE stored_files (
+  file_path VARCHAR(120) NOT NULL PRIMARY KEY COMMENT 'e.g. damage/3f9a....jpg (same as damage_reports.photo_path)',
+  content_type VARCHAR(40) NOT NULL,
+  data MEDIUMBLOB NOT NULL,
+  created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Uploaded photos stored in the database (online server)';
+
 -- ------------------------------------------------------------------ delivery tracking and notifications
 CREATE TABLE rider_locations (
   rider_id INT UNSIGNED PRIMARY KEY,

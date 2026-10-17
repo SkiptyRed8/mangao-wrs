@@ -10,14 +10,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.CacheControl;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -27,14 +24,6 @@ public class WebConfig implements WebMvcConfigurer {
   @Override
   public void addCorsMappings(CorsRegistry reg) {
     reg.addMapping("/**").allowedOriginPatterns("*").allowedMethods("*").allowedHeaders("*").exposedHeaders("Content-Disposition");
-  }
-
-  /** Damaged-gallon photos (random file names). */
-  @Override
-  public void addResourceHandlers(ResourceHandlerRegistry reg) {
-    reg.addResourceHandler("/uploads/**")
-        .addResourceLocations(Env.uploadsDir().toUri().toString() + "/")
-        .setCacheControl(CacheControl.maxAge(7, TimeUnit.DAYS));
   }
 
   /** Dates in JSON like before: "2026-10-14T01:40:00.000Z". */

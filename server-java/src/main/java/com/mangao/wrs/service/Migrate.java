@@ -17,6 +17,13 @@ public class Migrate {
   public static final double STATION_LAT = 14.6928230, STATION_LNG = 121.0871699;
   /** Placeholder pin used before Oct 14 (center of Commonwealth), replaced by the station's street. */
   private static final double OLD_LAT = 14.6976, OLD_LNG = 121.0886;
+  /** Damaged-gallon photos kept in the database when the server runs online (no lasting disk there). */
+  public static final String STORED_FILES = "CREATE TABLE IF NOT EXISTS stored_files ("
+      + " file_path VARCHAR(120) NOT NULL PRIMARY KEY COMMENT 'e.g. damage/3f9a....jpg (same as damage_reports.photo_path)',"
+      + " content_type VARCHAR(40) NOT NULL,"
+      + " data MEDIUMBLOB NOT NULL,"
+      + " created_at DATETIME NOT NULL"
+      + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Uploaded photos stored in the database (online server)'";
   private final Db db;
 
   public Migrate(Db db) {
@@ -29,8 +36,17 @@ public class Migrate {
     return V.lng(r.get("c")) > 0;
   }
 
+  private boolean tableExists(String table) {
+    Map<String, Object> r = db.one("SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", table);
+    return V.lng(r.get("c")) > 0;
+  }
+
   public List<String> migrate() {
     List<String> done = new ArrayList<>();
+    if (!tableExists("stored_files")) {
+      db.update(STORED_FILES);
+      done.add("photo storage");
+    }
     if (!columnExists("station_settings", "station_address")) {
       db.update("ALTER TABLE station_settings ADD COLUMN station_address VARCHAR(255) NULL COMMENT 'Shown on reports and the live map' AFTER station_phone");
       db.update("UPDATE station_settings SET station_address = ? WHERE setting_id = 1 AND station_address IS NULL", STATION_ADDRESS);

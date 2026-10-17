@@ -127,12 +127,18 @@ public class DamageApi {
     String note = b.text("note", 255);
     if (note.isEmpty()) throw HttpError.bad("NOTE_MISSING", "Note missing", "Write what is damaged, e.g. cracked at the handle.", "field", "note");
 
-    Path dir = Env.uploadsDir().resolve("damage");
-    Files.createDirectories(dir);
     byte[] rnd = new byte[16];
     RANDOM.nextBytes(rnd);
     String file = HexFormat.of().formatHex(rnd) + "." + photo.ext();
-    Files.write(dir.resolve(file), photo.bytes());
+    if (Env.photosInDatabase()) {
+      // Online server: the disk is wiped on every restart, so the photo goes into the database.
+      db.update("INSERT INTO stored_files (file_path, content_type, data, created_at) VALUES (?, ?, ?, ?)",
+          "damage/" + file, "jpg".equals(photo.ext()) ? "image/jpeg" : "image/" + photo.ext(), photo.bytes(), Clock.now());
+    } else {
+      Path dir = Env.uploadsDir().resolve("damage");
+      Files.createDirectories(dir);
+      Files.write(dir.resolve(file), photo.bytes());
+    }
 
     long oid = V.lng(order.get("order_id"));
     String name = V.truthy(order.get("customer_name")) ? V.str(order.get("customer_name")) : ("Walk-in".equals(order.get("order_source")) ? "Walk-in" : "Guest");

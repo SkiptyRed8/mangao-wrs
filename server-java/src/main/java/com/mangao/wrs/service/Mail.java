@@ -8,7 +8,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 /**
- * Sends emails (the forgot-password code) through Gmail SMTP with Spring Boot Mail (JavaMail).
+ * Sends emails (the forgot-password code) through Gmail SMTP with Spring Boot Mail (JavaMail), or,
+ * on the online server where SMTP ports are blocked, through the Brevo email API over HTTPS
+ * (BREVO_API_KEY in the settings; the sender is a Gmail address verified in Brevo).
  * While SMTP_USER is empty in .env, nothing is sent: the code is printed in the server window
  * and, outside production, also returned to the app so the flow can be shown in a demo.
  */
@@ -17,7 +19,55 @@ public class Mail {
   private JavaMailSenderImpl sender;
 
   public static boolean ready() {
-    return !Env.smtpUser().isEmpty() && !Env.smtpPass().isEmpty();
+    return brevo() || (!Env.smtpUser().isEmpty() && !Env.smtpPass().isEmpty());
+  }
+
+  static boolean brevo() {
+    return !Env.get("BREVO_API_KEY", "").trim().isEmpty();
+  }
+
+  /** "Name <email>" from MAIL_FROM; the email part falls back to BREVO_SENDER or SMTP_USER. */
+  static String[] fromParts() {
+    String from = Env.mailFrom().trim();
+    String name = from, email = "";
+    int lt = from.indexOf('<'), gt = from.indexOf('>');
+    if (lt >= 0 && gt > lt) {
+      name = from.substring(0, lt).trim();
+      email = from.substring(lt + 1, gt).trim();
+    } else if (from.contains("@")) {
+      name = "Mangao Water Refilling Station";
+      email = from;
+    }
+    String sender = Env.get("BREVO_SENDER", "").trim();
+    if (!sender.isEmpty() && brevo()) email = sender;
+    if (email.isEmpty() || email.endsWith("@example.com")) email = sender.isEmpty() ? Env.smtpUser() : sender;
+    if (name.isEmpty()) name = "Mangao Water Refilling Station";
+    return new String[] {name, email};
+  }
+
+  public static String senderEmail() {
+    return fromParts()[1];
+  }
+
+  /** Brevo transactional email API (HTTPS, port 443). */
+  static void sendBrevo(String to, String name, String subject, String text, String html) throws Exception {
+    String[] from = fromParts();
+    com.fasterxml.jackson.databind.ObjectMapper json = new com.fasterxml.jackson.databind.ObjectMapper();
+    java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+    body.put("sender", java.util.Map.of("name", from[0], "email", from[1]));
+    body.put("to", java.util.List.of(name == null || name.isBlank() ? java.util.Map.of("email", to) : java.util.Map.of("email", to, "name", name)));
+    body.put("subject", subject);
+    body.put("textContent", text);
+    if (html != null) body.put("htmlContent", html);
+    java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder(java.net.URI.create("https://api.brevo.com/v3/smtp/email"))
+        .timeout(java.time.Duration.ofSeconds(20))
+        .header("api-key", Env.get("BREVO_API_KEY", "").trim())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
+        .build();
+    java.net.http.HttpResponse<String> res = java.net.http.HttpClient.newHttpClient().send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+    if (res.statusCode() >= 300) throw new IllegalStateException("Brevo " + res.statusCode() + ": " + res.body());
   }
 
   private synchronized JavaMailSenderImpl sender() {
@@ -55,6 +105,9 @@ public class Mail {
     StringBuilder sb = new StringBuilder();
     for (Throwable t = err; t != null; t = t.getCause()) sb.append(t.getClass().getSimpleName()).append(' ').append(t.getMessage()).append(' ');
     String m = sb.toString();
+    if (m.contains("Brevo 401")) return "Brevo refused the API key. Copy the key again from Brevo > SMTP & API > API Keys into BREVO_API_KEY.";
+    if (m.contains("Brevo 400") && m.toLowerCase().contains("sender")) return "The sender email is not verified in Brevo. Verify it in Brevo > Senders, or set BREVO_SENDER to the verified address.";
+    if (m.contains("Brevo ")) return "Brevo did not send it; read the message above (account not activated yet, daily limit, or sender not verified).";
     if (m.matches("(?is).*(AuthenticationFailed|535|Invalid login|Username and Password not accepted|BadCredentials).*")) {
       return "Gmail refused the login. Check SMTP_USER is the full Gmail address, SMTP_PASS is a 16-letter App Password (not your normal Gmail password), and 2-Step Verification is ON for that Google account. Make a new App Password if unsure.";
     }
@@ -70,6 +123,19 @@ public class Mail {
   public static int selfTest() {
     String user = Env.smtpUser(), pass = Env.smtpPass();
     System.out.println();
+    if (brevo()) {
+      String[] from = fromParts();
+      System.out.println("Brevo email API, sender " + from[1]);
+      try {
+        sendBrevo(from[1], from[0], "Mangao WRS test email", "Email works. Forgot password codes will arrive like this.", null);
+        System.out.println("\nDONE: test email sent. Check the inbox (or Spam) of " + from[1] + ".");
+        return 0;
+      } catch (Exception e) {
+        System.out.println("\nFAILED: " + e.getMessage());
+        System.out.println("What to do: " + hint(e));
+        return 1;
+      }
+    }
     if (user.isEmpty() || pass.isEmpty()) {
       System.out.println("SMTP_USER or SMTP_PASS is empty in server-java\\.env. Fill both, save, and run this again.");
       return 1;
@@ -107,12 +173,7 @@ public class Mail {
       if (!Env.testMode()) System.out.println("[email not set up] password reset code for " + to + ": " + code);
       return false;
     }
-    JavaMailSenderImpl s = sender();
-    MimeMessage msg = s.createMimeMessage();
-    MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
-    h.setFrom(new jakarta.mail.internet.InternetAddress(Env.mailFrom()));
-    h.setTo(to);
-    h.setSubject(code + " is your Mangao password reset code");
+    String subject = code + " is your Mangao password reset code";
     String text = "Hi " + name + ",\n\n"
         + "Your code to reset your password is " + code + ".\n"
         + "It works for 10 minutes. If you did not ask for this, you can ignore this email.\n\n"
@@ -121,6 +182,16 @@ public class Mail {
         + "<p>Your code to reset your password is</p><p style=\"font-size:28px;font-weight:700;letter-spacing:6px\">" + code + "</p>"
         + "<p>It works for 10 minutes. If you did not ask for this, you can ignore this email.</p>"
         + "<p>Mangao Water Refilling Station</p>";
+    if (brevo()) {
+      sendBrevo(to, name, subject, text, html);
+      return true;
+    }
+    JavaMailSenderImpl s = sender();
+    MimeMessage msg = s.createMimeMessage();
+    MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
+    h.setFrom(new jakarta.mail.internet.InternetAddress(Env.mailFrom()));
+    h.setTo(to);
+    h.setSubject(subject);
     h.setText(text, html);
     s.send(msg);
     return true;

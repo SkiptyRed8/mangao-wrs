@@ -80,6 +80,19 @@ public final class Env {
   public static String mailFrom() { return get("MAIL_FROM", "Mangao Water Refilling Station <no-reply@example.com>"); }
   public static String firebaseServiceAccount() { return get("FIREBASE_SERVICE_ACCOUNT", ""); }
   /** Damaged-gallon photos. */
+  /** PHOTO_STORAGE=database on the online server (its disk does not last); disk on the laptop. */
+  public static boolean photosInDatabase() { return "database".equalsIgnoreCase(get("PHOTO_STORAGE", "disk").trim()); }
+
+  /** DB_SSL=true for online MySQL (Aiven requires an encrypted connection). */
+  public static boolean dbSsl() { return "true".equalsIgnoreCase(get("DB_SSL", "false").trim()); }
+
+  public static boolean autoSetupDb() { return "true".equalsIgnoreCase(get("AUTO_SETUP_DB", "false").trim()); }
+
+  public static boolean setupDemo() { return "true".equalsIgnoreCase(get("SETUP_DEMO", "false").trim()); }
+
+  /** JDBC SSL part of the connection URL. */
+  public static String jdbcSsl() { return dbSsl() ? "sslMode=REQUIRED" : "useSSL=false&allowPublicKeyRetrieval=true"; }
+
   public static Path uploadsDir() {
     return baseDir.resolve(get("UPLOADS_DIR", "uploads")).normalize();
   }

@@ -41,12 +41,21 @@ public class WrsApplication {
         System.exit(1);
       }
     }
+    if ("production".equals(Env.nodeEnv())) {
+      String secret = Env.jwtSecret();
+      if (secret.length() < 24 || secret.startsWith("change-this") || secret.equals("dev-only-secret")) {
+        System.err.println("JWT_SECRET is missing or too short for the online server (use at least 24 random letters). Not starting.");
+        System.exit(1);
+      }
+      if ("owner123".equals(Env.ownerPassword())) System.err.println("[warning] OWNER_PASSWORD is still owner123; change it in the server settings.");
+    }
+    if (Env.autoSetupDb()) SetupDb.ensure();
     SpringApplication app = new SpringApplication(WrsApplication.class);
     Map<String, Object> p = new HashMap<>();
     p.put("server.port", Env.port());
     p.put("spring.main.banner-mode", "off");
     p.put("spring.datasource.url", "jdbc:mysql://" + Env.dbHost() + ":" + Env.dbPort() + "/" + Env.dbName()
-        + "?useUnicode=true&characterEncoding=utf8&tinyInt1isBit=false&allowPublicKeyRetrieval=true&useSSL=false"
+        + "?useUnicode=true&characterEncoding=utf8&tinyInt1isBit=false&" + Env.jdbcSsl()
         + "&connectionTimeZone=%2B08:00&forceConnectionTimeZoneToSession=true");
     p.put("spring.datasource.username", Env.dbUser());
     p.put("spring.datasource.password", Env.dbPassword());
@@ -67,7 +76,9 @@ public class WrsApplication {
   @EventListener(ApplicationReadyEvent.class)
   public void ready() {
     System.out.println("Mangao WRS API (Java) running on http://localhost:" + Env.port() + "  (health check: /health)");
-    if (!Env.smtpUser().isEmpty() && !Env.smtpPass().isEmpty()) {
+    if (!Env.get("BREVO_API_KEY", "").trim().isEmpty()) {
+      System.out.println("[email] Brevo email API, sender " + com.mangao.wrs.service.Mail.senderEmail());
+    } else if (!Env.smtpUser().isEmpty() && !Env.smtpPass().isEmpty()) {
       String[] u = Env.smtpUser().split("@");
       String pass = Env.smtpPass();
       System.out.println("[email] Gmail account: " + (u[0].length() > 2 ? u[0].substring(0, 2) : u[0]) + "****@" + (u.length > 1 ? u[1] : "?")

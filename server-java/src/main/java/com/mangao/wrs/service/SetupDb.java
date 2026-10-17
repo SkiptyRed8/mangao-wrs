@@ -50,13 +50,39 @@ public final class SetupDb {
     }
   }
 
+  /**
+   * Online server (AUTO_SETUP_DB=true): builds the database the first time only, when it has no
+   * users table yet. An existing database is never touched. Demo accounts when SETUP_DEMO=true.
+   */
+  public static void ensure() {
+    String database = Env.dbName();
+    String url = "jdbc:mysql://" + Env.dbHost() + ":" + Env.dbPort() + "/?useUnicode=true&characterEncoding=utf8&" + Env.jdbcSsl();
+    try (Connection conn = DriverManager.getConnection(url, Env.dbUser(), Env.dbPassword());
+        PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = 'users'")) {
+      ps.setString(1, database);
+      try (java.sql.ResultSet rs = ps.executeQuery()) {
+        rs.next();
+        if (rs.getInt(1) > 0) return;
+      }
+    } catch (Exception e) {
+      System.err.println("[database] cannot check the database: " + e.getMessage());
+      return;
+    }
+    try {
+      System.out.println("[database] " + database + " is empty: creating it" + (Env.setupDemo() ? " with the demo accounts" : ""));
+      run(Env.setupDemo(), database, false);
+    } catch (Exception e) {
+      System.err.println("[database] setup failed: " + e.getMessage());
+    }
+  }
+
   public static void run(boolean demo, String database, boolean quiet) throws Exception {
     if (!database.matches("^[A-Za-z0-9_]+$")) throw new IllegalArgumentException("DB_NAME may only use letters, numbers and _");
     String sql = schemaSql()
         .replace("CREATE DATABASE IF NOT EXISTS mangao_wrs", "CREATE DATABASE IF NOT EXISTS `" + database + "`")
         .replace("USE mangao_wrs;", "USE `" + database + "`;");
     String url = "jdbc:mysql://" + Env.dbHost() + ":" + Env.dbPort()
-        + "/?allowMultiQueries=true&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false"
+        + "/?allowMultiQueries=true&useUnicode=true&characterEncoding=utf8&" + Env.jdbcSsl()
         + "&connectionTimeZone=%2B08:00&forceConnectionTimeZoneToSession=true";
     try (Connection conn = DriverManager.getConnection(url, Env.dbUser(), Env.dbPassword()); Statement st = conn.createStatement()) {
       st.execute("DROP DATABASE IF EXISTS `" + database + "`");
@@ -140,7 +166,7 @@ public final class SetupDb {
         }
         if (!quiet) {
           System.out.println("Demo accounts (phone / password):");
-          System.out.printf("  %-8s %s / %s%n", "Owner", ownerPhone, Env.ownerPassword());
+          System.out.printf("  %-8s %s / %s%n", "Owner", ownerPhone, "production".equals(Env.nodeEnv()) ? "(OWNER_PASSWORD setting)" : Env.ownerPassword());
           for (DemoUser u : DEMO_USERS) System.out.printf("  %-8s %s / %s%n", u.role(), u.phone(), u.password());
         }
       }
