@@ -1,0 +1,50 @@
+# Render Blueprint: the online Mangao WRS server (free plan). Render > New > Blueprint > this repository.
+# Values marked sync: false are typed in once when the Blueprint is created (see docs/GO-ONLINE.md).
+services:
+  - type: web
+    name: mangao-wrs
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: server-java
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTO_SETUP_DB
+        value: "true"
+      - key: SETUP_DEMO
+        value: "true"
+      - key: PHOTO_STORAGE
+        value: database
+      - key: DB_SSL
+        value: "true"
+      - key: DB_NAME
+        value: mangao_wrs
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: OWNER_NAME
+        value: Ervin P. Mangao
+      - key: OWNER_PHONE
+        value: "09170000001"
+      - key: OWNER_EMAIL
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER
+        sync: false
+      - key: MAIL_FROM
+        value: Mangao Water Refilling Station <no-reply@example.com>
