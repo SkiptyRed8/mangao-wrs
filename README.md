@@ -19,6 +19,7 @@ opens the app in Chrome. Keep the windows it opens.
 | Rider | 09170000003 | rider123 |
 | Customer | 09172001111 | ana123 |
 
+- **ALLOW-PHONE.bat** - run once if a phone on the same Wi-Fi cannot reach the laptop server (Windows Firewall, port 3100).
 - **TEST-EMAIL.bat** - checks the Gmail settings in `server-java\.env` and sends one test email.
 - **RESET-DEMO-DATA.bat** - start over with clean demo data (removes the mangao_wrs database through MySQL).
 - Never delete folders in `C:\xampp\mysql\data` by hand. Stop MySQL before shutting down the laptop.

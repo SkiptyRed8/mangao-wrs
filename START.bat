@@ -64,15 +64,25 @@ if exist target\mangao-wrs-server.jar (
   powershell -NoProfile -Command "$jar=(Get-Item 'target\mangao-wrs-server.jar').LastWriteTime; $src=Get-ChildItem -Recurse -File src,pom.xml | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if($src.LastWriteTime -gt $jar){exit 1}else{exit 0}"
   if not errorlevel 1 set "NEEDBUILD=0"
 )
-if "%NEEDBUILD%"=="1" (
-  echo       building the server ^(about a minute; only when the code changes^)...
-  call "%MVN%" -B -q -o package -DskipTests > "%ROOT%logs\build.log" 2>&1
-  if errorlevel 1 call "%MVN%" -B -q package -DskipTests > "%ROOT%logs\build.log" 2>&1
-  if not exist target\mangao-wrs-server.jar (
-    echo       The build failed. See logs\build.log
-    pause & exit /b 1
-  )
-)
+if "%NEEDBUILD%"=="0" goto build_ok
+rem A running server keeps its file open, so it must be closed before the new version is built.
+call :server_ping
+if errorlevel 1 call :old_ping
+if errorlevel 1 goto build_now
+echo       The server code changed. Close the window named "Mangao WRS server",
+echo       then press any key here to build and start the new version.
+pause >nul
+:build_now
+echo       building the server ^(about a minute; only when the code changes^)...
+call "%MVN%" -B -q -o package -DskipTests > "%ROOT%logs\build.log" 2>&1
+if not errorlevel 1 goto build_ok
+call "%MVN%" -B -q package -DskipTests > "%ROOT%logs\build.log" 2>&1
+if not errorlevel 1 goto build_ok
+echo       The build failed. If the "Mangao WRS server" window is still open, close it and run
+echo       START.bat again. Otherwise send logs\build.log to Claude.
+pause
+exit /b 1
+:build_ok
 "%BIN%\mysql.exe" -u root -e "USE mangao_wrs" >nul 2>&1
 if errorlevel 1 (
   echo       creating the mangao_wrs database with the demo accounts ^(first time only^)...
@@ -119,11 +129,12 @@ echo    Customer  09172001111 / ana123
 echo.
 rem Laptop address for phones on the same Wi-Fi or hotspot (backup to the online server).
 set "LANIP="
-for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)' } | Sort-Object InterfaceMetric | Select-Object -First 1).IPAddress"`) do set "LANIP=%%a"
+rem The Wi-Fi / network adapter that has a router (default gateway), not virtual adapters.
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1).IPv4Address.IPAddress"`) do set "LANIP=%%a"
 if defined LANIP (
   echo  Phone backup ^(same Wi-Fi or hotspot^): long-press the logo in the app and type
   echo    http://%LANIP%:3100
-  echo  If Windows asks to allow Java on the network, tick Private networks and press Allow.
+  echo  If the phone cannot reach it, double-click ALLOW-PHONE.bat once ^(Windows Firewall^).
   echo.
 )
 echo  Keep the MySQL, server and app windows open while you use the system.
