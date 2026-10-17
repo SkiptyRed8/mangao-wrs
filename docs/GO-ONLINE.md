@@ -12,7 +12,7 @@ How it works once this is set up:
 
 The phones only need internet (mobile data or any Wi-Fi). The laptop does not have to be on.
 
-You do parts A to C once (about 30 minutes). Only you can do them, because each one needs your own account.
+You do parts A and C once (about 15 minutes). Part B (email) is optional and can be done later. Only you can do them, because each one needs your own account.
 
 ---
 
@@ -30,7 +30,9 @@ You do parts A to C once (about 30 minutes). Only you can do them, because each 
 
 You do not need to create tables. The server creates the `mangao_wrs` database with the demo accounts the first time it starts.
 
-## B. Email: Brevo (free)
+## B. Email: Brevo (free) - optional, can be done later
+
+Without it everything works except the forgot-password email (the code is written in the Render log instead, and the owner can still reset staff passwords in the app). To add it later: do the steps below, then in Render > mangao-wrs > Environment add `BREVO_API_KEY` and `BREVO_SENDER` and save.
 
 Render's free plan blocks normal Gmail sending, so the online server sends email through Brevo, from your Gmail address.
 
@@ -54,10 +56,7 @@ Render's free plan blocks normal Gmail sending, so the online server sends email
    | `DB_PORT` | Port from Aiven |
    | `DB_USER` | `avnadmin` |
    | `DB_PASSWORD` | Password from Aiven |
-   | `OWNER_EMAIL` | The owner's email (for password reset) |
    | `OWNER_PASSWORD` | A new password for the owner account. **Do not use owner123 online.** |
-   | `BREVO_API_KEY` | The key from Brevo (B3) |
-   | `BREVO_SENDER` | Your Gmail address verified in Brevo (B2) |
 
 4. Choose **Apply**. The first build takes about 10 minutes. Watch **Logs** until you see
    `Mangao WRS API (Java) running` and `[database] mangao_wrs is empty: creating it with the demo accounts`.

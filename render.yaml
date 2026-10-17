@@ -1,5 +1,6 @@
 # Render Blueprint: the online Mangao WRS server (free plan). Render > New > Blueprint > this repository.
 # Values marked sync: false are typed in once when the Blueprint is created (see docs/GO-ONLINE.md).
+# Email (password reset codes) is optional: add BREVO_API_KEY and BREVO_SENDER later under Environment.
 services:
   - type: web
     name: mangao-wrs
@@ -38,13 +39,7 @@ services:
         value: Ervin P. Mangao
       - key: OWNER_PHONE
         value: "09170000001"
-      - key: OWNER_EMAIL
-        sync: false
       - key: OWNER_PASSWORD
-        sync: false
-      - key: BREVO_API_KEY
-        sync: false
-      - key: BREVO_SENDER
         sync: false
       - key: MAIL_FROM
         value: Mangao Water Refilling Station <no-reply@example.com>
