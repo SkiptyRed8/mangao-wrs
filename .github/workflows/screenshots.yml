@@ -1,0 +1,71 @@
+# Takes phone-size screenshots of every main screen for the documentation.
+# Runs the Java server with demo data and the web build of the app on the build machine, then
+# publishes the pictures as GitHub > Releases > "screenshots" (screenshots.zip). Started by hand.
+name: Screenshots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Start the Java server with demo data
+        run: |
+          mvn -B -q -f server-java/pom.xml package -DskipTests
+          cd server-java
+          TZ=Asia/Manila DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root AUTO_SETUP_DB=true SETUP_DEMO=true PORT=3100 \
+            nohup java -jar target/mangao-wrs-server.jar > ../server.log 2>&1 &
+          for i in $(seq 1 60); do curl -s localhost:3100/health && break; sleep 2; done
+
+      - name: Build the web app
+        working-directory: app
+        run: |
+          flutter create --platforms=web --org com.mangao --project-name mangao_wrs . > /dev/null
+          flutter pub get
+          flutter build web --release --dart-define=API_URL=http://localhost:3100
+          nohup python3 -m http.server 5100 -d build/web > /dev/null 2>&1 &
+
+      - name: Take screenshots
+        working-directory: tools/shots
+        run: |
+          npm init -y > /dev/null
+          npm i playwright@1.48.2 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+          TZ=Asia/Manila node shots.js
+
+      - name: Publish
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp server.log tools/shots/out/ 2>/dev/null || true
+          cd tools/shots/out && zip -q ../screenshots.zip * && cd ..
+          gh release delete screenshots --yes --cleanup-tag 2>/dev/null || true
+          gh release create screenshots screenshots.zip --title "App screenshots for the documentation" \
+            --notes "Phone-size screenshots of the main screens (demo data), commit ${GITHUB_SHA::7}." --prerelease --latest=false --target "$GITHUB_SHA"
