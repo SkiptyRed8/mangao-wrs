@@ -1,0 +1,12 @@
+# App icon for Android (made on the build server from the logo).
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"
+  web:
+    generate: true
+    image_path: "assets/images/logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0B7BD6"
