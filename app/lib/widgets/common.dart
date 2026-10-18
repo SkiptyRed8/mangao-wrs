@@ -621,28 +621,6 @@ class Logo extends StatelessWidget {
       );
 }
 
-/// Stand-in for a screen built in a later step of the tracker.
-class ComingSoonCard extends StatelessWidget {
-  final int step;
-  final String what;
-  const ComingSoonCard({super.key, required this.step, required this.what});
-
-  @override
-  Widget build(BuildContext context) => Box(
-        tint: true,
-        child: Row(children: [
-          const Icon(Icons.construction_outlined, color: Brand.blue),
-          const Gap(12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Coming in step $step', style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(what, style: const TextStyle(color: Brand.muted, fontSize: 13)),
-            ]),
-          ),
-        ]),
-      );
-}
-
 /// Small outlined button inside a card header (Edit, Edit prices, Change).
 class SmallBtn extends StatelessWidget {
   final String text;

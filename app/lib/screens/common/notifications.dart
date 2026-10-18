@@ -200,10 +200,10 @@ class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
                 ]),
               ),
             ),
-        const Gap(6),
-        Note(_push
-            ? 'Phone push is on: alerts also come to the phone when the app is closed.'
-            : 'Alerts show in the app (bell and banner). Phone push starts when the Firebase project is added to the server.'),
+        if (_push) ...[
+          const Gap(6),
+          const Note('Alerts also come to your phone when the app is closed.'),
+        ],
       ]),
     );
   }

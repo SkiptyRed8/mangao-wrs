@@ -129,7 +129,7 @@ public class NotificationsApi {
     W w = who(req);
     Body b = new Body(raw);
     String token = b.str("token").strip();
-    if (token.length() < 20 || token.length() > 255) throw HttpError.bad("TOKEN_INVALID", "Push not set up", "The phone did not give a push token.");
+    if (token.length() < 20 || token.length() > 255) throw HttpError.bad("TOKEN_INVALID", "Notifications not set up", "Try again later.");
     Object pl = b.get("platform");
     String platform = "android".equals(pl) || "web".equals(pl) ? (String) pl : "android";
     boolean user = w.who().user() != null;

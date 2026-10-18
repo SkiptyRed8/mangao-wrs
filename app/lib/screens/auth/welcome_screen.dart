@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../config.dart';
@@ -67,7 +66,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             _ServerLine(_server, onRetry: () {
               setState(() => _server = null);
               _check();
-            }, onSettings: _serverSettings),
+            }),
           ]),
         ),
       ),
@@ -75,42 +74,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 }
 
-/// Small line under the buttons: is the server running? (helps while testing on the laptop)
+/// Small line under the buttons: shown only while connecting or when there is no connection.
 class _ServerLine extends StatelessWidget {
   final bool? ok;
   final VoidCallback onRetry;
-  final VoidCallback onSettings;
-  const _ServerLine(this.ok, {required this.onRetry, required this.onSettings});
+  const _ServerLine(this.ok, {required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    if (ok == true) {
-      if (!AppConfig.custom) return const SizedBox(height: 20);
-      return Text('Server: ${AppConfig.apiUrl}', style: const TextStyle(fontSize: 11.5, color: Brand.muted));
-    }
+    if (ok == true) return const SizedBox(height: 20);
     final waiting = ok == null;
     final color = waiting ? Brand.muted : Brand.red;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      InkWell(
-        onTap: onRetry,
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(waiting ? Icons.sync : Icons.cloud_off, size: 16, color: color),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              waiting
-                  ? 'Connecting to the server...'
-                  : kIsWeb
-                      ? 'Server not running. Start it, then tap here.'
-                      : 'Cannot reach the server. Check the internet, then tap here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w600),
-            ),
+    return InkWell(
+      onTap: onRetry,
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(waiting ? Icons.sync : Icons.cloud_off, size: 16, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            waiting ? 'Connecting...' : 'No connection. Check the internet, then tap here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w600),
           ),
-        ]),
-      ),
-      if (!waiting) TextButton(onPressed: onSettings, child: const Text('Server address')),
-    ]);
+        ),
+      ]),
+    );
   }
 }
 
@@ -167,8 +155,7 @@ class _ServerDialogState extends State<_ServerDialog> {
           onSubmitted: (_) => _save(),
         ),
         const SizedBox(height: 8),
-        const Text('For the laptop server: phone and laptop on the same Wi-Fi or hotspot; START.bat shows the address.',
-            style: TextStyle(fontSize: 12, color: Brand.muted)),
+        const Text('For the project team only (testing).', style: TextStyle(fontSize: 12, color: Brand.muted)),
       ]),
       actions: [
         if (AppConfig.custom) TextButton(onPressed: _reset, child: const Text('Use built-in')),

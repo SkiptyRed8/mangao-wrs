@@ -176,7 +176,6 @@ class _EnterCodeScreenState extends State<EnterCodeScreen> {
   @override
   Widget build(BuildContext context) {
     final masked = (_sent['email'] ?? widget.email) as String;
-    final devCode = _sent['devCode'] as String?;
     final mm = _wait ~/ 60;
     final ss = (_wait % 60).toString().padLeft(2, '0');
     return Scaffold(
@@ -186,13 +185,6 @@ class _EnterCodeScreenState extends State<EnterCodeScreen> {
         const Text('Check your email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         const Gap(4),
         Text('We sent a 6-digit code to $masked. The code works for 10 minutes.', style: const TextStyle(color: Brand.muted)),
-        if (devCode != null) ...[
-          const Gap(10),
-          InkWell(
-            onTap: () => _code.text = devCode,
-            child: Note('Email is not set up yet (demo). Your code is $devCode - tap to fill it in.'),
-          ),
-        ],
         const Gap(14),
         const Label('6-digit code'),
         const Gap(6),

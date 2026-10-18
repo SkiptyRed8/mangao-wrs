@@ -60,9 +60,9 @@ class Api {
       final streamed = await _client.send(req).timeout(const Duration(seconds: 20));
       res = await http.Response.fromStream(streamed);
     } on TimeoutException {
-      throw const ApiException(0, 'TIMEOUT', 'The server is taking too long', 'Check your internet connection and try again.');
+      throw const ApiException(0, 'TIMEOUT', 'Taking too long', 'Check your internet connection and try again.');
     } catch (_) {
-      throw const ApiException(0, 'OFFLINE', 'Cannot reach the server', 'Check your internet connection and try again.');
+      throw const ApiException(0, 'OFFLINE', 'No connection', 'Check your internet connection and try again.');
     }
 
     Map<String, dynamic> json = {};

@@ -25,13 +25,13 @@ public class ErrorAdvice {
   @ExceptionHandler({NoResourceFoundException.class, HttpRequestMethodNotSupportedException.class})
   public ResponseEntity<Map<String, Object>> notFound(HttpServletRequest req) {
     return ResponseEntity.status(404)
-        .body(new HttpError(404, "NOT_FOUND", "Not found", req.getMethod() + " " + req.getRequestURI() + " does not exist.").body());
+        .body(new HttpError(404, "NOT_FOUND", "Not found", "This part is not available. Update the app.").body());
   }
 
   @ExceptionHandler({HttpMessageNotReadableException.class, HttpMediaTypeNotSupportedException.class})
   public ResponseEntity<Map<String, Object>> badJson() {
     return ResponseEntity.status(400)
-        .body(new HttpError(400, "BAD_JSON", "Something went wrong", "The app sent data the server could not read.").body());
+        .body(new HttpError(400, "BAD_JSON", "Something went wrong", "Please try again.").body());
   }
 
   @ExceptionHandler(Exception.class)
@@ -40,7 +40,7 @@ public class ErrorAdvice {
     if (hint != null) {
       System.err.println("[database] " + hint);
       return ResponseEntity.status(503)
-          .body(new HttpError(503, "DATABASE", "The system is not ready", "The database is not available. Try again in a moment.").body());
+          .body(new HttpError(503, "DATABASE", "The system is busy", "Try again in a moment.").body());
     }
     e.printStackTrace();
     return ResponseEntity.status(500).body(new HttpError(500, "SERVER_ERROR", "Something went wrong", "Please try again.").body());
