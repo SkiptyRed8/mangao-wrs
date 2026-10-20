@@ -47,6 +47,9 @@ jobs:
               -d '{"token":"status-check-token-0123456789abcdefgh","platform":"android"}' "$URL/api/notifications/device" || echo "no answer")
             echo "::notice title=device token::$out"
           fi
+      - name: As the app
+        run: |
+          URL=$(tr -d ' \r\n' < deploy/server-url.txt)
           for ua in "Dart/3.13 (dart:io)" "okhttp/4.12.0"; do
             out=$(curl -s -o /tmp/d.txt -w "%{http_code} %{time_total}s" --max-time 60 -A "$ua" "$URL/health" || echo "no answer")
             echo "::notice title=health as $ua::$out $(head -c 150 /tmp/d.txt)"
