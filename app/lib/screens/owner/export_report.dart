@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config.dart';
@@ -9,8 +14,9 @@ import '../../utils/format.dart';
 import '../../widgets/common.dart';
 
 /// Admin Sales 4: Export Report. Choose the report (Daily, Weekly, Unpaid accounts), the date or week,
-/// and the format (PDF or Spreadsheet), then Create file. The file downloads (Chrome: Downloads folder;
-/// phone: opens in the browser to save or share).
+/// and the format (PDF or Spreadsheet), then Create file. Chrome: the file goes to the Downloads folder.
+/// Phone: the app downloads the file and opens the phone's Save screen (Downloads), so it does not
+/// depend on the phone's browser.
 class ExportReport extends StatefulWidget {
   /// 0 Daily, 1 Weekly, 2 Unpaid accounts.
   final int report;
@@ -29,6 +35,8 @@ class _ExportReportState extends State<ExportReport> {
   ApiException? _error;
   String? _fileName;
   String? _url;
+  Uint8List? _bytes; // phone: the downloaded file, kept so "Save again" works
+  bool? _saved; // phone: true saved, false the Save screen was closed without saving
 
   static const _reports = ['Daily', 'Weekly', 'Unpaid accounts'];
   static const _keys = ['daily', 'weekly', 'unpaid'];
@@ -60,6 +68,8 @@ class _ExportReportState extends State<ExportReport> {
         f();
         _fileName = null;
         _url = null;
+        _bytes = null;
+        _saved = null;
         _error = null;
       });
 
@@ -86,12 +96,19 @@ class _ExportReportState extends State<ExportReport> {
         'format': _format == 0 ? 'pdf' : 'xlsx',
       });
       if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _fileName = r['fileName'] as String;
-        _url = r['url'] as String;
-      });
-      await _download();
+      _fileName = r['fileName'] as String;
+      _url = r['url'] as String;
+      _bytes = null;
+      _saved = null;
+      if (kIsWeb) {
+        setState(() => _busy = false);
+        await _download();
+      } else {
+        _bytes = await _fetch();
+        if (!mounted) return;
+        setState(() => _busy = false);
+        await _saveOnPhone();
+      }
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {
@@ -102,9 +119,45 @@ class _ExportReportState extends State<ExportReport> {
     }
   }
 
+  /// Chrome on the laptop: the browser downloads the file.
   Future<void> _download() async {
     final ok = await launchUrl(Uri.parse('${AppConfig.apiUrl}$_url'), mode: LaunchMode.externalApplication);
     if (!ok && mounted) toast(context, 'Could not open the file', error: true);
+  }
+
+  static const _notSaved = ApiException(0, 'DOWNLOAD', 'File not saved', 'Check the internet, then tap Create file again.');
+
+  /// Phone: downloads the file into the app (the link works for 5 minutes).
+  Future<Uint8List> _fetch() async {
+    try {
+      final res = await http.get(Uri.parse('${AppConfig.apiUrl}$_url')).timeout(const Duration(seconds: 60));
+      if (res.statusCode != 200 || res.bodyBytes.isEmpty) throw _notSaved;
+      return res.bodyBytes;
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw _notSaved;
+    }
+  }
+
+  /// Phone: the phone's Save screen opens (usually at Downloads); the user taps Save.
+  Future<void> _saveOnPhone() async {
+    final bytes = _bytes;
+    final name = _fileName;
+    if (bytes == null || name == null) return;
+    try {
+      final uri = await FilePicker.saveFile(
+        fileName: name,
+        bytes: bytes,
+        mimeType: name.endsWith('.pdf')
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        dialogTitle: 'Save report',
+      );
+      if (mounted) setState(() => _saved = uri != null);
+    } catch (_) {
+      if (mounted) setState(() => _error = _notSaved);
+    }
   }
 
   @override
@@ -139,7 +192,7 @@ class _ExportReportState extends State<ExportReport> {
         ),
         const Gap(18),
         Btn('Create file', _create, busy: _busy, icon: Icons.file_download_outlined),
-        if (_fileName != null) ...[
+        if (_fileName != null && kIsWeb) ...[
           const Gap(14),
           Box(
             tint: true,
@@ -155,6 +208,30 @@ class _ExportReportState extends State<ExportReport> {
               const Text('Check your Downloads folder. On a phone, share it from there.', style: TextStyle(color: Brand.muted, fontSize: 12.5)),
               const Gap(10),
               Btn('Download again', _create, outline: true, small: true),
+            ]),
+          ),
+        ],
+        if (_fileName != null && !kIsWeb && _saved != null) ...[
+          const Gap(14),
+          Box(
+            tint: true,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                Icon(_saved! ? Icons.check_circle : Icons.info_outline, color: Brand.blue),
+                const SizedBox(width: 8),
+                Text(_saved! ? 'File saved' : 'File not saved yet', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              ]),
+              const Gap(4),
+              Text(_fileName!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5)),
+              const Gap(2),
+              Text(
+                _saved!
+                    ? 'Open it from the Files app (Downloads or the folder you chose). From there you can open or share it.'
+                    : 'Tap Save to phone, then tap Save on the next screen.',
+                style: const TextStyle(color: Brand.muted, fontSize: 12.5),
+              ),
+              const Gap(10),
+              Btn(_saved! ? 'Save again' : 'Save to phone', _saveOnPhone, outline: _saved!, small: true),
             ]),
           ),
         ],

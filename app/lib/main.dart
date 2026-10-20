@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/root.dart';
+import 'services/app_state.dart';
 import 'services/nav.dart';
 import 'theme/brand.dart';
 
@@ -21,7 +22,11 @@ class MangaoApp extends StatelessWidget {
       scaffoldMessengerKey: messengerKey,
       theme: buildTheme(),
       // In Chrome on the laptop, show the app at phone size in the middle of the window.
-      builder: (context, child) => LayoutBuilder(
+      // Every touch counts as using the app (session expires after 2 minutes without use).
+      builder: (context, child) => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => app.touch(),
+        child: LayoutBuilder(
         builder: (context, box) => box.maxWidth <= 520
             ? child!
             : ColoredBox(
@@ -43,6 +48,7 @@ class MangaoApp extends StatelessWidget {
                   ),
                 ),
               ),
+        ),
       ),
       home: const Root(),
     );

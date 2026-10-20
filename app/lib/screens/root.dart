@@ -23,13 +23,14 @@ class Root extends StatefulWidget {
   State<Root> createState() => _RootState();
 }
 
-class _RootState extends State<Root> {
+class _RootState extends State<Root> with WidgetsBindingObserver {
   bool _ready = false;
   StreamSubscription<RtEvent>? _alerts;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _start();
     // Alerts from the server show as a banner at the bottom (on a phone they also come as push).
     _alerts = realtime.events.where((e) => e.name == 'notification').listen(_showAlert);
@@ -37,8 +38,19 @@ class _RootState extends State<Root> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _alerts?.cancel();
     super.dispose();
+  }
+
+  /// Session expiry: away from the app for 2 minutes = log in again (AppState.idleLimit).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      app.checkIdle();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      app.paused();
+    }
   }
 
   void _showAlert(RtEvent e) {

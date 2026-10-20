@@ -1,0 +1,71 @@
+# Checks the Java server the same way Render runs it: builds the Docker image from server-java,
+# starts it next to a MySQL 8.4 database, and runs all the API tests (server/test) against it.
+name: Server check
+
+on:
+  push:
+    paths:
+      - 'server-java/**'
+      - 'server/test/**'
+      - 'server/scripts/**'
+      - 'database/**'
+      - '.github/workflows/server.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USER: wrs
+      DB_PASSWORD: wrsdev
+      DB_NAME: mangao_wrs_test
+      JWT_SECRET: server-check-secret-for-tests-only
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Database user for the tests
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "CREATE USER 'wrs'@'%' IDENTIFIED BY 'wrsdev'; GRANT ALL PRIVILEGES ON *.* TO 'wrs'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Build the server image (same Dockerfile as Render)
+        run: docker build -t mangao-wrs server-java
+
+      - name: Start the server
+        run: |
+          docker run -d --name wrs --network host \
+            -e NODE_ENV=test -e PORT=3199 -e DB_HOST -e DB_PORT -e DB_USER -e DB_PASSWORD -e DB_NAME -e JWT_SECRET \
+            mangao-wrs
+          for i in $(seq 1 60); do
+            if curl -s http://localhost:3199/ > /dev/null; then echo "server up after $i tries"; exit 0; fi
+            sleep 2
+          done
+          docker logs wrs
+          exit 1
+
+      - name: Install test tools
+        working-directory: server
+        run: npm ci
+
+      - name: API tests
+        working-directory: server
+        run: API_URL=http://localhost:3199 node --test --test-concurrency=1 test/*.test.js
+
+      - name: Server log
+        if: always()
+        run: docker logs wrs 2>&1 | tail -80

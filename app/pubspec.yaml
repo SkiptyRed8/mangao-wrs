@@ -20,6 +20,8 @@ dependencies:
   web_socket_channel: ^3.0.3
   # Photo of a damaged gallon (camera or gallery; file picker in Chrome)
   image_picker: ^1.1.2
+  # Export Report on a phone: the phone's own Save screen (Downloads)
+  file_picker: ^13.0.0
 
 dev_dependencies:
   flutter_test:

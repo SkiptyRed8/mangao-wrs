@@ -25,7 +25,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (app.sessionEnded) {
       app.sessionEnded = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) go(context, const LoginScreen(note: 'Session ends'));
+        if (mounted) go(context, LoginScreen(note: app.loginNote));
       });
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/user.dart';
 import 'api.dart';
+import 'nav.dart';
 import 'realtime.dart';
 
 /// Which screens the owner is looking at (top-bar switcher, Admin Home 2).
@@ -37,6 +39,71 @@ class AppState extends ChangeNotifier {
   static const _kUser = 'user';
   static const _kGuest = 'guest';
   static const _kGuestToken = 'guestToken';
+  static const _kActive = 'lastActive';
+
+  /// Logged-in users are logged out after this long without touching the app (also when the app
+  /// was closed or in the background), and have to log in again.
+  static const idleLimit = Duration(minutes: 2);
+  static const expiredNote = 'Session expired. You were away for 2 minutes, so you were logged out. Log in again.';
+
+  DateTime _lastActive = DateTime.now();
+  DateTime _lastSaved = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _idleTimer;
+
+  /// The note shown on the Log in page after the session ended ("Session ends" or "Session expired").
+  String loginNote = 'Session ends';
+
+  /// Called on every touch of the screen (main.dart).
+  void touch() {
+    final now = DateTime.now();
+    if (loggedIn && now.difference(_lastActive) >= idleLimit) {
+      expire(); // came back after the limit: log out instead of continuing
+      return;
+    }
+    _lastActive = now;
+    if (loggedIn && now.difference(_lastSaved) > const Duration(seconds: 15)) _saveActive();
+  }
+
+  /// Saves the last touch time on the phone (so it also counts when the app is closed).
+  Future<void> _saveActive() async {
+    _lastSaved = _lastActive;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kActive, _lastActive.millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
+  /// The app goes to the background: remember when it was last used.
+  void paused() {
+    if (loggedIn) _saveActive();
+  }
+
+  /// Checks the time without use (every few seconds and when the app comes back to the screen).
+  void checkIdle() {
+    if (loggedIn && DateTime.now().difference(_lastActive) >= idleLimit) expire();
+  }
+
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer.periodic(const Duration(seconds: 5), (_) => checkIdle());
+  }
+
+  bool _expiring = false;
+
+  /// Session expired: log out and show Log in with the note.
+  Future<void> expire() async {
+    if (_expiring || !loggedIn) return;
+    _expiring = true;
+    try {
+      navKey.currentState?.popUntil((r) => r.isFirst);
+      await logout();
+      sessionEnded = true;
+      loginNote = expiredNote;
+      notifyListeners();
+    } finally {
+      _expiring = false;
+    }
+  }
 
   /// Called when the app opens: already logged in -> that role's Home; otherwise Welcome.
   /// It never waits for the internet: the saved session opens at once and is checked in the background,
@@ -71,6 +138,18 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    // Not used for 2 minutes (or more) since the app was last open: the session has expired.
+    final last = prefs.getInt(_kActive);
+    if (last == null || DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(last)) >= idleLimit) {
+      await _clear(prefs);
+      sessionEnded = true;
+      loginNote = expiredNote;
+      notifyListeners();
+      return;
+    }
+    _lastActive = DateTime.now();
+    _saveActive();
+    _startIdleTimer();
     api.token = token;
     try {
       final saved = prefs.getString(_kUser);
@@ -121,6 +200,9 @@ class AppState extends ChangeNotifier {
     await prefs.setString(_kToken, token);
     await prefs.setString(_kUser, jsonEncode(u.toJson()));
     await prefs.setBool(_kGuest, false);
+    _lastActive = DateTime.now();
+    await _saveActive();
+    _startIdleTimer();
     realtime.connect(token: token);
     notifyListeners();
   }
@@ -128,9 +210,12 @@ class AppState extends ChangeNotifier {
   Future<void> _clear(SharedPreferences prefs) async {
     api.token = null;
     user = null;
+    _idleTimer?.cancel();
+    _idleTimer = null;
     realtime.disconnect();
     await prefs.remove(_kToken);
     await prefs.remove(_kUser);
+    await prefs.remove(_kActive);
   }
 
   /// Log in with phone number and password (all roles).
@@ -203,6 +288,7 @@ class AppState extends ChangeNotifier {
   /// Log out (or Exit guest mode, which also forgets the guest's orders on this phone).
   Future<void> logout() async {
     sessionEnded = !guest && user != null && user!.role != Role.customer;
+    loginNote = 'Session ends';
     final prefs = await SharedPreferences.getInstance();
     await _clear(prefs);
     if (guest) {
