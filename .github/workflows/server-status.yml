@@ -23,3 +23,17 @@ jobs:
           out=$(curl -s -o /tmp/l.json -w "%{http_code} %{time_total}s" --max-time 120 -H "Content-Type: application/json" \
             -d '{"phone":"09170000001","password":"wrong-password-check"}' "$URL/api/auth/login" || echo "no answer")
           echo "::notice title=login (wrong password)::$out $(head -c 200 /tmp/l.json 2>/dev/null)"
+          out=$(curl -s -o /tmp/s.json -w "%{http_code} %{time_total}s" --max-time 120 -H "Content-Type: application/json" \
+            -d '{"phone":"09170000002","password":"staff123"}' "$URL/api/auth/login" || echo "no answer")
+          echo "::notice title=login (demo staff)::$out $(head -c 120 /tmp/s.json | sed 's/"token":"[^"]*"/"token":"..."/')"
+          tok=$(python3 -c "import json;print(json.load(open('/tmp/s.json')).get('token',''))" 2>/dev/null)
+          if [ -n "$tok" ]; then
+            for p in /api/auth/me /api/notifications/unread /api/work/todo; do
+              out=$(curl -s -o /dev/null -w "%{http_code} %{time_total}s" --max-time 60 -H "Authorization: Bearer $tok" "$URL$p" || echo "no answer")
+              echo "::notice title=$p::$out"
+            done
+            out=$(curl -s -o /dev/null -w "%{http_code} %{time_total}s" --max-time 60 -H "Authorization: Bearer $tok" -H "Content-Type: application/json" \
+              -d '{"token":"status-check-token-0123456789abcdefgh","platform":"android"}' "$URL/api/notifications/device" || echo "no answer")
+            echo "::notice title=device token::$out"
+          fi
+
