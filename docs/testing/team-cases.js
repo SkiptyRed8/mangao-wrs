@@ -11,6 +11,7 @@ module.exports = [
       ['Open the app.', 'Welcome screen with the logo and the buttons Log in, Sign up and "Continue as guest". (The first time it can take up to 1 minute while the server wakes up.)'],
       ['Log in with 09172001111 and a wrong password, e.g. abc123.', 'Red box "Details wrong / Check your phone number and password"; the boxes get red borders.'],
       ['Log in with 09172001111 / ana123.', 'Home: Order Now button and the Price List (Refill (delivery) P35.00 per gallon, Package P150.00).'],
+      ['Close the app fully (swipe it away from recent apps) and open it again.', 'Home opens again within a few seconds (still logged in). It must not stay on the logo screen.'],
       ['Tap Order Now.', 'Order Form: "Refill my gallons" chosen, Gallons 1, Total P35.00, your phone already filled in, Payment "Cash on delivery (COD)".'],
       ['Tap + two times. Then tap "Buy a package", then "Refill my gallons" again.', 'Refill: 3 gallons, P105.00. Package: P450.00. Back to Refill: P105.00.'],
       ['Tap Delivery address > Pin on map > "Use my location". Allow location when the phone asks.', 'The map moves to where you are and shows "Pinned: near <street>, <barangay>". Tap "Use this address".'],

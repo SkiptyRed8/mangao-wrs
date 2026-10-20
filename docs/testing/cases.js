@@ -624,7 +624,9 @@ module.exports = [
     before: 'Install the APK from GitHub (docs/GO-ONLINE.md part D). Until the online server is set up (parts A to C), use the laptop: phone and laptop on the same Wi-Fi or hotspot, START.bat running, and in the app long-press the logo and type the address START.bat shows (http://192.168.x.x:3100).',
     cases: [
       ['Open github.com/SkiptyRed8/mangao-wrs/releases/tag/app-latest on the phone, download mangao-wrs.apk and install it.', 'The app "Mangao WRS" with the station logo appears on the phone.'],
-      ['Open the app.', 'Welcome screen. With the online server set up: no red line. Without it: "Cannot reach the server" and a "Server address" button.'],
+      ['Open the app when nobody has used it for 30 minutes (the online server is asleep).', 'The logo shows for about 1 second, then the Welcome screen with Log in, Sign up and "Continue as guest". "Connecting... this can take up to a minute." shows under the buttons and goes away by itself.'],
+      ['Tap Log in right away and log in while it still says "Connecting...".', 'It waits (up to about a minute) and then opens Home; no "Taking too long" error.'],
+      ['Log in, close the app fully (swipe it away), wait 30 minutes, open it again.', 'Home of the same account opens within a few seconds; the app never stays on the logo screen.'],
       ['Long-press the logo, type the laptop address from START.bat, Save.', 'The red line goes away; "Server: http://192.168.x.x:3100" shows under the buttons.'],
       ['Long-press the logo, "Use built-in".', 'Back to the online server address.'],
       ['Log in as Customer and place an order (pin the address with GPS).', 'Android asks for location permission; the pin goes to where you are; the order is placed.'],
