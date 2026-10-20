@@ -69,6 +69,7 @@ const children = [
   para('3. Open the downloaded file. Allow installing from Chrome (Settings > "Allow from this source"), go back, tap Install.'),
   para('4. If Play Protect warns "unknown developer": tap "More details" > "Install anyway". (It warns only because the app is not from the Play Store.)'),
   para('5. Open "Mangao WRS". The first time it can take up to 1 minute while the online server wakes up.'),
+  para('6. Check the version under the buttons on the Welcome screen (also at the bottom of My Account). It must match the newest version on the GitHub page (e.g. "version 1.0.13"). If it is older, install the new APK again; in the web version close the tab and open the link again.'),
   para('You need internet on the phone (Wi-Fi or mobile data). Allow location and camera when the app asks.', { color: MUTED }),
   para('Testing indoors? The owner can turn on More > Prices & Settings > Demo ride: the sidecar then drives from the station to the customer by itself. Turn it off afterwards.', { color: MUTED }),
 
