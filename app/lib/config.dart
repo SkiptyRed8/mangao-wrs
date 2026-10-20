@@ -18,6 +18,10 @@ class AppConfig {
   static bool get custom => _chosen != null;
   static const stationName = 'Mangao Water Refilling Station';
 
+  /// App version, set by the GitHub build (e.g. 1.0.13); shown on Welcome and My Account so testers
+  /// can check they have the newest version.
+  static const version = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
+
   /// Reads the address chosen on this phone (called when the app opens).
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();

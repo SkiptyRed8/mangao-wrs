@@ -67,6 +67,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               setState(() => _server = null);
               _check();
             }),
+            const Text('Version ${AppConfig.version}', style: TextStyle(color: Brand.muted, fontSize: 11.5)),
           ]),
         ),
       ),

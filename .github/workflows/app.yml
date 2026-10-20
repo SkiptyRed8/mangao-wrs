@@ -65,13 +65,23 @@ jobs:
       - name: Build web app
         run: |
           echo "== build web ==" >> ../build-report.txt
-          flutter build web --release --base-href /mangao-wrs/ --dart-define=API_URL="$API_URL" 2>&1 | tail -40 | tee -a ../build-report.txt
+          flutter build web --release --base-href /mangao-wrs/ --dart-define=API_URL="$API_URL" --dart-define=APP_VERSION="$VERSION" 2>&1 | tail -40 | tee -a ../build-report.txt
           test -f build/web/index.html
+          # Phones must not keep an old copy of the web app: a version mark on the app files makes the
+          # browser load the new ones, and an old offline copy (service worker) removes itself.
+          cd build/web
+          sed -i "s#flutter_bootstrap.js#flutter_bootstrap.js?v=$VERSION#" index.html
+          sed -i 's#<head>#<head>\n  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">#' index.html
+          sed -i "s#\"mainJsPath\":\"main.dart.js\"#\"mainJsPath\":\"main.dart.js?v=$VERSION\"#" flutter_bootstrap.js
+          grep -q "main.dart.js?v=" flutter_bootstrap.js && echo "web: version mark added ($VERSION)" | tee -a ../../../build-report.txt || echo "web: main.dart.js mark not added" | tee -a ../../../build-report.txt
+          printf '%s\n' "self.addEventListener('install', () => self.skipWaiting());" \
+            "self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))).then(() => self.registration.unregister())));" \
+            > flutter_service_worker.js
 
       - name: Build Android app
         run: |
           echo "== build apk ==" >> ../build-report.txt
-          flutter build apk --release --build-name "$VERSION" --build-number "${{ github.run_number }}" --dart-define=API_URL="$API_URL" 2>&1 | tail -40 | tee -a ../build-report.txt
+          flutter build apk --release --build-name "$VERSION" --build-number "${{ github.run_number }}" --dart-define=API_URL="$API_URL" --dart-define=APP_VERSION="$VERSION" 2>&1 | tail -40 | tee -a ../build-report.txt
           cp build/app/outputs/flutter-apk/app-release.apk ../mangao-wrs.apk
 
       - name: Publish the Android app

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../config.dart';
 import '../../models/order.dart';
 import '../../models/user.dart';
 import '../../services/api.dart';
@@ -99,6 +100,8 @@ class AccountScreen extends StatelessWidget {
             const Gap(),
           ],
           Btn(app.guest ? 'Exit guest mode' : 'Log out', () => _logout(context), outline: true),
+          const Gap(14),
+          const Center(child: Text('Version ${AppConfig.version}', style: TextStyle(color: Brand.muted, fontSize: 12))),
         ]),
       );
     });
