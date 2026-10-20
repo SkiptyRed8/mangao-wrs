@@ -135,7 +135,15 @@ class AppState extends ChangeNotifier {
 
   /// Log in with phone number and password (all roles).
   Future<void> login(String phone, String password) async {
-    final r = await api.post('/api/auth/login', {'phone': phone, 'password': password});
+    final body = {'phone': phone, 'password': password};
+    Map<String, dynamic> r;
+    try {
+      r = await api.post('/api/auth/login', body);
+    } on ApiException catch (e) {
+      // The server was still waking up: wait for it once, then try again.
+      if (!e.offline || !await serverOk()) rethrow;
+      r = await api.post('/api/auth/login', body);
+    }
     await _saveSession(r['token'] as String, AppUser.fromJson(r['user'] as Map<String, dynamic>));
   }
 
@@ -231,12 +239,17 @@ class AppState extends ChangeNotifier {
   }
 
   /// Server check shown on the Welcome screen while setting up.
-  Future<bool> serverOk() async {
-    try {
-      final r = await api.get('/health');
-      return r['ok'] == true;
-    } on ApiException {
-      return false;
+  /// True when the server answers. The free online server sleeps when nobody uses it and needs
+  /// about a minute to wake up, so this keeps trying for up to [wait] before it says "no connection".
+  Future<bool> serverOk({Duration wait = const Duration(seconds: 90)}) async {
+    final until = DateTime.now().add(wait);
+    while (true) {
+      try {
+        final r = await api.get('/health');
+        if (r['ok'] == true) return true;
+      } catch (_) {}
+      if (DateTime.now().isAfter(until)) return false;
+      await Future<void>.delayed(const Duration(seconds: 3));
     }
   }
 

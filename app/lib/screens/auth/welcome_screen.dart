@@ -92,7 +92,7 @@ class _ServerLine extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            waiting ? 'Connecting...' : 'No connection. Check the internet, then tap here.',
+            waiting ? 'Connecting... this can take up to a minute.' : 'No connection. Check the internet, then tap here.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w600),
           ),
