@@ -185,7 +185,7 @@ PolylineLayer routeLayer(RouteResult? r) => PolylineLayer(polylines: [
           color: Brand.blue,
           borderStrokeWidth: 2,
           borderColor: Colors.white,
-          pattern: r.streets ? const StrokePattern.solid() : const StrokePattern.dashed(segments: [12, 10]),
+          pattern: r.streets ? const StrokePattern.solid() : StrokePattern.dashed(segments: const [12, 10]),
         ),
     ]);
 
