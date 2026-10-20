@@ -58,7 +58,7 @@ class Api {
     http.Response res;
     try {
       final streamed = await _client.send(req).timeout(const Duration(seconds: 20));
-      res = await http.Response.fromStream(streamed);
+      res = await http.Response.fromStream(streamed).timeout(const Duration(seconds: 20));
     } on TimeoutException {
       throw const ApiException(0, 'TIMEOUT', 'Taking too long', 'Check your internet connection and try again.');
     } catch (_) {

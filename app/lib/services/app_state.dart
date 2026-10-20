@@ -118,6 +118,9 @@ class AppState extends ChangeNotifier {
     try {
       await AppConfig.load();
     } catch (_) {}
+    // A backup address saved on this phone earlier: check it in the background and go back to the
+    // built-in online server if it does not answer.
+    if (AppConfig.custom) serverOk(wait: Duration.zero);
     SharedPreferences? prefs;
     try {
       prefs = await SharedPreferences.getInstance();
@@ -234,7 +237,7 @@ class AppState extends ChangeNotifier {
       r = await api.post('/api/auth/login', body);
     } on ApiException catch (e) {
       // The server was still waking up: wait for it once, then try again.
-      if (!e.offline || !await serverOk()) rethrow;
+      if (!e.offline || !await serverOk(wait: const Duration(seconds: 40))) rethrow;
       r = await api.post('/api/auth/login', body);
     }
     await _saveSession(r['token'] as String, AppUser.fromJson(r['user'] as Map<String, dynamic>));
@@ -344,6 +347,17 @@ class AppState extends ChangeNotifier {
         final r = await api.get('/health');
         if (r['ok'] == true) return true;
       } catch (_) {}
+      // An old backup address saved on this phone (e.g. the laptop) does not answer, but the
+      // built-in online server does: go back to the built-in one by itself.
+      if (AppConfig.custom) {
+        try {
+          final r = await Api(baseUrl: AppConfig.defaultUrl).get('/health');
+          if (r['ok'] == true) {
+            await AppConfig.choose(null);
+            return true;
+          }
+        } catch (_) {}
+      }
       if (DateTime.now().isAfter(until)) return false;
       await Future<void>.delayed(const Duration(seconds: 3));
     }

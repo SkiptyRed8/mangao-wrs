@@ -36,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await app.login(_phone.text, _password.text);
+      // The button never spins forever: after 75 seconds it stops with a message.
+      await app.login(_phone.text, _password.text).timeout(const Duration(seconds: 75));
       if (mounted) toRoot(context);
     } on ApiException catch (e) {
       if (mounted) {
@@ -44,6 +45,13 @@ class _LoginScreenState extends State<LoginScreen> {
           _error = e;
           _busy = false;
           _password.clear(); // wireframe: the password is cleared after an error
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = const ApiException(0, 'NOT_FINISHED', 'Log in did not finish', 'Check the internet, then tap Log in again.');
+          _busy = false;
         });
       }
     }
