@@ -39,36 +39,74 @@ class AppState extends ChangeNotifier {
   static const _kGuestToken = 'guestToken';
 
   /// Called when the app opens: already logged in -> that role's Home; otherwise Welcome.
+  /// It never waits for the internet: the saved session opens at once and is checked in the background,
+  /// so a sleeping or slow server can not keep the app on the logo screen.
   Future<void> load() async {
-    await AppConfig.load();
-    final prefs = await SharedPreferences.getInstance();
-    guestToken = prefs.getString(_kGuestToken);
-    guest = prefs.getBool(_kGuest) ?? false;
+    try {
+      await AppConfig.load();
+    } catch (_) {}
+    SharedPreferences? prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (_) {
+      notifyListeners();
+      return;
+    }
+    try {
+      guestToken = prefs.getString(_kGuestToken);
+      guest = prefs.getBool(_kGuest) ?? false;
+    } catch (_) {
+      guestToken = null;
+      guest = false;
+    }
     api.guestToken = guest ? guestToken : null;
-    final token = prefs.getString(_kToken);
+    String? token;
+    try {
+      token = prefs.getString(_kToken);
+    } catch (_) {
+      token = null;
+    }
     if (token == null) {
       if (guest && guestToken != null) realtime.connect(guest: guestToken);
       notifyListeners();
       return;
     }
     api.token = token;
-    final saved = prefs.getString(_kUser);
-    if (saved != null) {
-      try {
-        user = AppUser.fromJson(jsonDecode(saved) as Map<String, dynamic>);
-      } catch (_) {
-        user = null;
-      }
+    try {
+      final saved = prefs.getString(_kUser);
+      if (saved != null) user = AppUser.fromJson(jsonDecode(saved) as Map<String, dynamic>);
+    } catch (_) {
+      user = null;
     }
+    if (user != null) {
+      realtime.connect(token: token);
+      notifyListeners();
+      _verify(prefs, token); // in the background
+      return;
+    }
+    // No usable saved user: ask the server once, but do not wait for it forever.
+    await _verify(prefs, token).timeout(const Duration(seconds: 8), onTimeout: () {});
+    if (user == null) await _clear(prefs);
+    notifyListeners();
+  }
+
+  /// Checks the saved session with the server. Session ended or account deactivated: back to Welcome.
+  /// Server off, slow or answering something unexpected: keep what is saved.
+  Future<void> _verify(SharedPreferences prefs, String token) async {
     try {
       final r = await api.get('/api/auth/me');
-      user = AppUser.fromJson(r['user'] as Map<String, dynamic>);
-      await prefs.setString(_kUser, jsonEncode(user!.toJson()));
+      final u = r['user'];
+      if (u is Map<String, dynamic>) {
+        user = AppUser.fromJson(u);
+        await prefs.setString(_kUser, jsonEncode(user!.toJson()));
+        if (!realtime.connected) realtime.connect(token: token);
+      }
     } on ApiException catch (e) {
-      // Session ended or account deactivated: back to Welcome. Server off: keep the saved user.
-      if (!e.offline) await _clear(prefs);
-    }
-    if (user != null) realtime.connect(token: token);
+      if (!e.offline && (e.status == 401 || e.status == 403)) {
+        await _clear(prefs);
+        sessionEnded = false;
+      }
+    } catch (_) {}
     notifyListeners();
   }
 

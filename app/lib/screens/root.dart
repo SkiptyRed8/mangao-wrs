@@ -71,7 +71,10 @@ class _RootState extends State<Root> {
 
   Future<void> _start() async {
     final started = DateTime.now();
-    await app.load();
+    try {
+      // Never stay on the logo screen: after 10 seconds the app opens anyway.
+      await app.load().timeout(const Duration(seconds: 10));
+    } catch (_) {}
     final wait = const Duration(milliseconds: 700) - DateTime.now().difference(started);
     if (wait > Duration.zero) await Future<void>.delayed(wait);
     if (mounted) setState(() => _ready = true);
