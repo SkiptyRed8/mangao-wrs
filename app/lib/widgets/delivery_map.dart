@@ -319,7 +319,7 @@ class _SidecarPainter extends CustomPainter {
     line
       ..color = dark
       ..strokeWidth = 2.6;
-    canvas.drawLine(const Offset(10, 13), const Offset(28, 13), line);
+    canvas.drawLine(const Offset(11, 13), const Offset(25, 13), line);
 
     // rider's helmet
     fill.color = dark;
