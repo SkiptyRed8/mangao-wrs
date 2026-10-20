@@ -165,6 +165,7 @@ class _StaffOrderDetailsState extends State<StaffOrderDetails> {
                 KV('Amount', peso(o.total)),
                 KV('Rider', riderLabel(o)),
                 if (o.estText.isNotEmpty) KV('Delivery', o.estText),
+                if (o.createdText.isNotEmpty) KV('Ordered', o.createdText),
                 KV('Address', o.address),
                 if (o.notes.isNotEmpty) KV('Notes', o.notes),
                 KV('Phone', phoneFmt(o.phone), last: true),

@@ -195,7 +195,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Next stop: pin ${stop['n']}, ${stop['name']}${route == null ? '' : '\n${etaText(route)}'}',
+                'Next stop: pin ${stop['n']}, ${stop['name']}${route == null ? '' : '\n${arrivalText(_pos(r)!, _pos(stop), route)}'}',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -222,9 +222,16 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
     final stale = ((r['minutesAgo'] ?? 99) as num) > 5;
     final stop = _nextStop(r);
     final route = _routeOf(r);
+    final m = stop == null ? null : metersBetween(_pos(r)!, _pos(stop)!);
     final label = stale
         ? 'Last seen ${r['minutesAgo']} min ago'
-        : (stop == null ? (r['name'] as String).split(' ').first : 'To ${stop['n']} · ${route == null ? '...' : etaShort(route)}');
+        : stop == null
+            ? (r['name'] as String).split(' ').first
+            : m! <= arrivedMeters
+                ? 'Arrived at ${stop['n']}'
+                : m <= arrivingMeters
+                    ? 'Arriving at ${stop['n']}'
+                    : 'To ${stop['n']} · ${route == null ? '...' : etaShort(route)}';
     return SidecarLayer(
       key: ValueKey('rider-${r['id']}'),
       point: _pos(r)!,

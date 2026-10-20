@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/app_state.dart';
 import '../services/nav.dart';
+import '../services/push.dart';
 import '../services/realtime.dart';
 import '../theme/brand.dart';
 import '../widgets/common.dart';
@@ -83,6 +84,9 @@ class _RootState extends State<Root> with WidgetsBindingObserver {
 
   Future<void> _start() async {
     final started = DateTime.now();
+    try {
+      await PushSetup.init().timeout(const Duration(seconds: 5)); // phone notifications (Firebase)
+    } catch (_) {}
     try {
       // Never stay on the logo screen: after 10 seconds the app opens anyway.
       await app.load().timeout(const Duration(seconds: 10));

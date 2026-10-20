@@ -29,6 +29,7 @@ class _OrderFormState extends State<OrderForm> {
   int _qty = 1;
   Address? _address;
   int? _fromOrder;
+  DateTime? _day; // delivery date chosen by the customer; null = as soon as possible
   ApiException? _error;
   bool _busy = false;
 
@@ -117,6 +118,7 @@ class _OrderFormState extends State<OrderForm> {
       (c, set) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         KV('$_qty ${_qty == 1 ? 'gallon' : 'gallons'} · $type', '$_qty x ${peso(_unit)}'),
         KV('Deliver to', _addressText),
+        KV('Delivery date', _dayText),
         const KV('Payment', 'Cash on delivery'),
         Padding(
           padding: const EdgeInsets.only(top: 10),
@@ -144,6 +146,7 @@ class _OrderFormState extends State<OrderForm> {
         if (_address?.id != null) 'addressId': _address!.id,
         if (_address != null && _address!.id == null) 'address': _address!.toJson(),
         if (_address == null && _fromOrder != null) 'fromOrderId': _fromOrder,
+        if (_day != null) 'deliveryDate': _ymd(_day!),
       };
       final r = await app.api.post('/api/orders', body);
       if (!mounted) return;
@@ -168,6 +171,25 @@ class _OrderFormState extends State<OrderForm> {
         });
       }
     }
+  }
+
+  static String _ymd(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  static const _wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  String get _dayText => _day == null ? 'As soon as possible' : '${_wd[_day!.weekday - 1]}, ${_mo[_day!.month - 1]} ${_day!.day}';
+
+  /// Delivery date: tomorrow up to 7 days ahead (today = as soon as possible).
+  Future<void> _pickDay() async {
+    final p = ph(DateTime.now());
+    final today = DateTime(p.year, p.month, p.day);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _day ?? today.add(const Duration(days: 1)),
+      firstDate: today.add(const Duration(days: 1)),
+      lastDate: today.add(const Duration(days: 7)),
+      helpText: 'Choose delivery date',
+    );
+    if (d != null) setState(() => _day = DateTime(d.year, d.month, d.day));
   }
 
   Future<void> _cancel() async {
@@ -271,6 +293,33 @@ class _OrderFormState extends State<OrderForm> {
                   ),
                 ),
               ),
+              const Gap(14),
+              const Label('Delivery date'),
+              const Gap(6),
+              Seg(const ['As soon as possible', 'Choose a date'], _day == null ? 0 : 1, (i) {
+                if (i == 0) {
+                  setState(() => _day = null);
+                } else {
+                  _pickDay();
+                }
+              }),
+              if (_day != null) ...[
+                const Gap(8),
+                Box(
+                  onTap: _pickDay,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(children: [
+                    const Icon(Icons.calendar_today_outlined, color: Brand.blue, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_dayText, style: const TextStyle(fontWeight: FontWeight.w700))),
+                    const Text('Change', style: TextStyle(color: Brand.blue, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('Delivered between 7:30 AM and 6:00 PM on that day.', style: TextStyle(color: Brand.muted, fontSize: 12)),
+                ),
+              ],
               const Gap(12),
               Field('Phone number', _phone, kind: FieldKind.phone),
               Field('Notes', _notes, hint: 'Optional'),

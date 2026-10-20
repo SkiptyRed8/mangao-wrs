@@ -58,6 +58,22 @@ String etaText(RouteResult r) {
   return 'About $minutes min away · $distance';
 }
 
+/// Within this distance of the address the rider has arrived, and within [arrivingMeters] is arriving
+/// (the server sends the same two messages to the customer's phone).
+const arrivedMeters = 50.0;
+const arrivingMeters = 300.0;
+
+/// The customer's line above the map: "Your rider has arrived. Please prepare ₱150.00",
+/// "Arriving - please prepare ₱150.00", or "About 6 min away · 1.8 km".
+String arrivalText(LatLng rider, LatLng? home, RouteResult? view, {String? prepare}) {
+  if (home != null) {
+    final m = metersBetween(rider, home);
+    if (m <= arrivedMeters) return 'Your rider has arrived.${prepare == null ? '' : ' $prepare'}';
+    if (m <= arrivingMeters) return prepare == null ? 'Arriving now' : 'Arriving - ${prepare[0].toLowerCase()}${prepare.substring(1)}';
+  }
+  return view == null ? 'Finding the route...' : etaText(view);
+}
+
 /// Short form for the marker label on the Live Map: "6 min".
 String etaShort(RouteResult r) => r.meters < 60 ? 'Arriving' : '${math.max(1, (r.seconds / 60).ceil())} min';
 
@@ -418,7 +434,10 @@ class DeliveryMap extends StatefulWidget {
   /// The station: the trip starts here (light line of the way already travelled).
   final LatLng? start;
   final double height;
-  const DeliveryMap({super.key, required this.home, required this.rider, this.start, this.height = 260});
+
+  /// "Please prepare ₱150.00" (null when the order is already paid).
+  final String? prepare;
+  const DeliveryMap({super.key, required this.home, required this.rider, this.start, this.height = 260, this.prepare});
 
   @override
   State<DeliveryMap> createState() => _DeliveryMapState();
@@ -497,7 +516,7 @@ class _DeliveryMapState extends State<DeliveryMap> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              r == null ? "Waiting for the rider's location..." : (view == null ? 'Finding the route...' : etaText(view)),
+              r == null ? "Waiting for the rider's location..." : arrivalText(r, h, view, prepare: widget.prepare),
               style: TextStyle(fontWeight: FontWeight.w800, color: r == null ? Brand.muted : Brand.ink),
             ),
           ),

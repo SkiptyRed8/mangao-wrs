@@ -9,6 +9,7 @@ import '../config.dart';
 import '../models/user.dart';
 import 'api.dart';
 import 'nav.dart';
+import 'push.dart';
 import 'realtime.dart';
 
 /// Which screens the owner is looking at (top-bar switcher, Admin Home 2).
@@ -165,6 +166,7 @@ class AppState extends ChangeNotifier {
     if (user != null) {
       realtime.connect(token: token);
       notifyListeners();
+      PushSetup.register();
       _verify(prefs, token); // in the background
       return;
     }
@@ -210,6 +212,7 @@ class AppState extends ChangeNotifier {
     _startIdleTimer();
     realtime.connect(token: token);
     notifyListeners();
+    PushSetup.register(); // phone notifications for this account
   }
 
   Future<void> _clear(SharedPreferences prefs) async {
@@ -276,6 +279,7 @@ class AppState extends ChangeNotifier {
     await prefs.setBool(_kGuest, true);
     realtime.connect(guest: guestToken);
     notifyListeners();
+    PushSetup.register();
   }
 
   /// Set by Log out for the owner, staff and riders: Welcome then opens Log in with "Session ends"
@@ -292,6 +296,7 @@ class AppState extends ChangeNotifier {
 
   /// Log out (or Exit guest mode, which also forgets the guest's orders on this phone).
   Future<void> logout() async {
+    await PushSetup.unregister();
     sessionEnded = !guest && user != null && user!.role != Role.customer;
     loginNote = 'Session ends';
     final prefs = await SharedPreferences.getInstance();

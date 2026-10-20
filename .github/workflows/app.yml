@@ -78,10 +78,18 @@ jobs:
             "self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))).then(() => self.registration.unregister())));" \
             > flutter_service_worker.js
 
+      - name: Phone notification settings (Firebase)
+        env:
+          FB_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
+        run: |
+          defs=$(python3 ci/firebase_defines.py)
+          echo "FB_DEFINES=$defs" >> "$GITHUB_ENV"
+          if [ -n "$defs" ]; then echo "push: on (Firebase settings found)" | tee -a ../build-report.txt; else echo "push: off (add the FIREBASE_ANDROID_JSON secret to turn it on)" | tee -a ../build-report.txt; fi
+
       - name: Build Android app
         run: |
           echo "== build apk ==" >> ../build-report.txt
-          flutter build apk --release --build-name "$VERSION" --build-number "${{ github.run_number }}" --dart-define=API_URL="$API_URL" --dart-define=APP_VERSION="$VERSION" 2>&1 | tail -40 | tee -a ../build-report.txt
+          flutter build apk --release --build-name "$VERSION" --build-number "${{ github.run_number }}" --dart-define=API_URL="$API_URL" --dart-define=APP_VERSION="$VERSION" $FB_DEFINES 2>&1 | tail -40 | tee -a ../build-report.txt
           cp build/app/outputs/flutter-apk/app-release.apk ../mangao-wrs.apk
 
       - name: Publish the Android app

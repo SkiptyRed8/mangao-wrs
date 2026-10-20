@@ -29,6 +29,8 @@ class Order {
   final String deliveredClock;
   final DateTime? createdAt;
   final String reason; // decline reason or not-delivered note
+  final String createdText; // "Oct 20, 9:20 PM" (when the order was made, Philippine time)
+  final String? deliveryDate; // "2026-10-22" chosen by the customer; null = as soon as possible
 
   const Order({
     required this.id,
@@ -60,6 +62,8 @@ class Order {
     required this.deliveredClock,
     required this.createdAt,
     required this.reason,
+    this.createdText = '',
+    this.deliveryDate,
   });
 
   static double? _d(dynamic v) => v == null ? null : (v as num).toDouble();
@@ -95,7 +99,18 @@ class Order {
         deliveredClock: (j['deliveredClock'] ?? '') as String,
         createdAt: _t(j['createdAt']),
         reason: (j['reason'] ?? '') as String,
+        createdText: (j['createdText'] ?? '') as String,
+        deliveryDate: j['deliveryDate'] as String?,
       );
+
+  /// "Deliver on Thu, Oct 22" or "As soon as possible".
+  String get deliveryDateText {
+    final d = deliveryDate == null ? null : DateTime.tryParse(deliveryDate!);
+    if (d == null) return 'As soon as possible';
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return 'Deliver on ${days[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}';
+  }
 
   /// "3 gallons · Refill"
   String get summary => '$quantity ${quantity == 1 ? 'gallon' : 'gallons'} · $type';

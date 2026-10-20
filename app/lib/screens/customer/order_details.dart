@@ -104,7 +104,9 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
                 if (o.status == 'Processing')
                   Note('Your $what order is processing. Please wait for the status of your order.'),
                 if (o.status == 'Out for Delivery')
-                  Note((o.batchSize ?? 1) > 1 ? 'Your rider is handling multiple orders.' : 'Your rider is on the way.'),
+                  Note(((d['otherStops'] ?? 0) as num) > 0
+                      ? 'Your rider is also delivering ${d['otherStops']} other ${d['otherStops'] == 1 ? 'order' : 'orders'} on this trip.'
+                      : 'Your rider is on the way.'),
                 Box(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Label('Your order'),
@@ -118,6 +120,9 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
                     if (o.landmark.isNotEmpty) Text(o.landmark, style: const TextStyle(color: Brand.muted, fontSize: 12.5)),
                     const Gap(2),
                     const Text('Cash on delivery · Pay once delivered', style: TextStyle(color: Brand.muted, fontSize: 12.5)),
+                    if (o.createdText.isNotEmpty) Text('Ordered ${o.createdText}', style: const TextStyle(color: Brand.muted, fontSize: 12.5)),
+                    if (o.deliveryDate != null)
+                      Text(o.deliveryDateText, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Brand.blue)),
                   ]),
                 ),
                 if ((o.status == 'Processing' || o.status == 'Out for Delivery') && o.estText.isNotEmpty) ...[
@@ -250,6 +255,11 @@ class RiderMap extends StatelessWidget {
     final start = station == null || station!['lat'] == null
         ? null
         : LatLng((station!['lat'] as num).toDouble(), (station!['lng'] as num).toDouble());
-    return DeliveryMap(home: home, rider: r, start: start);
+    return DeliveryMap(
+      home: home,
+      rider: r,
+      start: start,
+      prepare: order.paymentStatus == 'Paid' ? null : 'Please prepare ${peso(order.total)}',
+    );
   }
 }

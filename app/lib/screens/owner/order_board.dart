@@ -7,6 +7,7 @@ import '../../services/api.dart';
 import '../../services/app_state.dart';
 import '../../services/realtime.dart';
 import '../../theme/brand.dart';
+import '../../utils/format.dart';
 import '../../widgets/common.dart';
 import '../common/live_map.dart';
 import '../shell.dart';
@@ -246,6 +247,13 @@ class _OrderBoardState extends State<OrderBoard> {
 }
 
 /// One order card on the board (Admin Orders 1).
+/// "at 9:50 PM": an app order not accepted or declined within 30 minutes is cancelled by the system.
+String _cancelAt(Order o) {
+  final t = o.createdAt;
+  if (t == null || o.source != 'App') return 'after 30 minutes';
+  return 'at ${clockPh(t.add(const Duration(minutes: 30)))}';
+}
+
 class BoardCard extends StatelessWidget {
   final Order order;
   final bool? picked; // null = not selecting
@@ -257,7 +265,9 @@ class BoardCard extends StatelessWidget {
     final o = order;
     final line2 = [if (o.km != null) '${o.km} km away', o.sourceText].join(' · ');
     final footer = switch (o.status) {
-      'New' => 'Delivery time: set when accepted',
+      'New' => o.deliveryDate != null
+          ? '${o.deliveryDateText} · cancels ${_cancelAt(o)} if not accepted'
+          : 'As soon as possible · cancels ${_cancelAt(o)} if not accepted',
       'Processing' || 'Out for Delivery' => 'Rider: ${o.riderShort} · Delivery ${o.estText}',
       'Delivered' => 'Delivered ${o.deliveredClock} · ${o.riderShort}',
       'Not Delivered' => [if (o.reason.isNotEmpty) o.reason, o.riderShort].join(' · '),
@@ -288,6 +298,7 @@ class BoardCard extends StatelessWidget {
             ]),
             const Gap(2),
             Text(o.summary),
+            if (o.createdText.isNotEmpty) Text('Ordered ${o.createdText}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
             Text(line2, style: const TextStyle(color: Brand.muted, fontSize: 12.5)),
             const Divider(height: 14),
             Row(children: [

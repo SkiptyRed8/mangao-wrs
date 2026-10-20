@@ -199,6 +199,9 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
                 ['Source: ${o.sourceText}', o.paymentText, if (o.km != null) '${o.km} km away'].join(' · '),
                 style: const TextStyle(color: Brand.muted, fontSize: 12.5),
               ),
+              if (o.createdText.isNotEmpty) Text('Ordered ${o.createdText}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+              if (o.deliveryDate != null)
+                Text(o.deliveryDateText, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Brand.blue)),
             ]),
             _box('Estimated Delivery Time', [
               if (o.estText.isEmpty)

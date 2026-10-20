@@ -121,10 +121,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  /// "Today, 9:20 PM", "Yesterday, 9:20 PM" or "Oct 18, 9:20 PM" (always the date and the time).
   static String _when(String? iso) {
     final t = iso == null ? null : DateTime.tryParse(iso);
-    final day = dayPh(t);
-    return day == 'Today' ? clockPh(t) : day;
+    if (t == null) return '';
+    return '${dayPh(t)}, ${clockPh(t)}';
   }
 }
 
