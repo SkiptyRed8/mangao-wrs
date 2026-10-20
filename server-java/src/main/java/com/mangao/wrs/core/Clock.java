@@ -95,11 +95,45 @@ public final class Clock {
     return h12 + ":" + String.format("%02d", p.mi()) + " " + (p.h() < 12 ? "AM" : "PM");
   }
 
-  /** "by 9:50 AM" or "1:00 to 1:30 PM" */
+  private static final String[] MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+  /** "Oct 20" */
+  public static String dateText(Instant t) {
+    Parts p = parts(t);
+    return MONTHS[p.mo()] + " " + p.d();
+  }
+
+  /** "Oct 20, 9:20 PM" */
+  public static String dateClock(Instant t) {
+    return t == null ? "" : dateText(t) + ", " + clock(t);
+  }
+
+  /**
+   * "by 9:50 AM", "1:00 to 1:30 PM", or with the day when it is not today:
+   * "Oct 22, 7:30 AM to 6:00 PM" (a delivery date chosen by the customer).
+   */
   public static String deliveryText(Instant from, Instant to) {
     if (to == null) return "";
-    if (from != null) return clock(from).replaceAll(" (AM|PM)$", "") + " to " + clock(to);
-    return "by " + clock(to);
+    String day = ymd(to).equals(ymd(now())) ? "" : dateText(to) + ", ";
+    if (from != null) {
+      String a = clock(from), b = clock(to);
+      boolean same = a.substring(a.length() - 2).equals(b.substring(b.length() - 2));
+      return day + (same ? a.replaceAll(" (AM|PM)$", "") : a) + " to " + b;
+    }
+    return day + "by " + clock(to);
+  }
+
+  /** Delivery hours on a chosen day (owner interview: deliveries 7:30 AM to 6:00 PM). */
+  public static final int OPEN_H = 7, OPEN_MI = 30, CLOSE_H = 18;
+
+  /**
+   * Estimated delivery for an order accepted at t: the usual rule, or the delivery hours of the day
+   * the customer chose when it is a later day.
+   */
+  public static Est estimatedDelivery(Instant t, String deliveryDate) {
+    if (deliveryDate == null || deliveryDate.isBlank() || deliveryDate.compareTo(ymd(t)) <= 0) return estimatedDelivery(t);
+    Instant day = noonOf(deliveryDate);
+    return new Est(at(day, OPEN_H, OPEN_MI), at(day, CLOSE_H, 0), false);
   }
 
   /** Start of today in Philippine time. */

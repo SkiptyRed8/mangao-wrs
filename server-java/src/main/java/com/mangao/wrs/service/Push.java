@@ -26,8 +26,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Push notifications to phones (step 36) with Firebase Cloud Messaging (HTTP v1 API).
- * Turned on when .env has FIREBASE_SERVICE_ACCOUNT=path\to\service-account.json
- * (Firebase console > Project settings > Service accounts > Generate new private key).
+ * Turned on by FIREBASE_SERVICE_ACCOUNT: on the laptop the path of the key file in .env; online (Render
+ * Environment) the whole text of the key file (Firebase console > Project settings > Service accounts >
+ * Generate new private key).
  * Without it, nothing is sent: the app still gets every alert in the app (bell and banner).
  */
 @Component
@@ -58,10 +59,19 @@ public class Push {
       return null;
     }
     try {
-      Path p = Env.baseDir().resolve(file);
-      // .env copied from the old server folder: a relative key path still points there.
-      if (!Files.exists(p) && Files.exists(Env.baseDir().resolve("../server").resolve(file))) p = Env.baseDir().resolve("../server").resolve(file);
-      creds = json.readValue(Files.readString(p), Map.class);
+      String text = file.trim();
+      if (!text.startsWith("{")) {
+        // Online (Render): the key file's text itself, or the same text in base64; on the laptop: a file path.
+        if (text.length() > 200 && text.matches("^[A-Za-z0-9+/=\\s]+$")) {
+          text = new String(Base64.getDecoder().decode(text.replaceAll("\\s", "")), StandardCharsets.UTF_8);
+        } else {
+          Path p = Env.baseDir().resolve(file);
+          // .env copied from the old server folder: a relative key path still points there.
+          if (!Files.exists(p) && Files.exists(Env.baseDir().resolve("../server").resolve(file))) p = Env.baseDir().resolve("../server").resolve(file);
+          text = Files.readString(p);
+        }
+      }
+      creds = json.readValue(text, Map.class);
       System.out.println("[push] Firebase project " + creds.get("project_id") + ": push notifications on");
     } catch (Exception e) {
       System.err.println("[push] cannot read FIREBASE_SERVICE_ACCOUNT (" + e.getMessage() + "); push notifications off");
@@ -121,7 +131,8 @@ public class Push {
           "token", pushToken,
           "notification", M.of("title", title, "body", message),
           "data", M.of("type", type == null ? "" : type, "orderId", orderId == null ? "" : String.valueOf(orderId)),
-          "android", M.of("priority", "high"))));
+          "android", M.of("priority", "high", "notification", M.of(
+              "default_sound", true, "default_vibrate_timings", true, "notification_priority", "PRIORITY_HIGH")))));
       HttpResponse<String> res = http.send(HttpRequest.newBuilder(URI.create("https://fcm.googleapis.com/v1/projects/" + c.get("project_id") + "/messages:send"))
           .header("Authorization", "Bearer " + token)
           .header("Content-Type", "application/json")

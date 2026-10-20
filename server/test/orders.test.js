@@ -42,7 +42,7 @@ describe('Customer Home and Order Form (FR-15; Customer 2, 3, 3A)', () => {
     assert.equal(first.phone, '09172001111');
     assert.equal(r.body.title, 'Thank you for your order!');
     const n = await one("SELECT * FROM notifications WHERE user_id = 1 AND notification_type = 'New Order' ORDER BY notification_id DESC LIMIT 1");
-    assert.equal(n.message, 'Ana Lim: 3 gallons · Refill');
+    assert.match(n.message, /^Ana Lim: 3 gallons · Refill( · ordered [A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d\d (AM|PM))?$/);
     const home = await as(ana, api().get('/api/orders/home'));
     assert.equal(home.body.active[0].id, first.id);
   });

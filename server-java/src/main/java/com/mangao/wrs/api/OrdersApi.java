@@ -104,17 +104,41 @@ public class OrdersApi {
     Orders.Station station = orders.stationPoint();
     // Out for Delivery: the rider's last location for the live map (Customer 5, Customer 11).
     Map<String, Object> rider = null;
+    long otherStops = 0;
     if ("Out for Delivery".equals(o.get("status")) && o.get("rider_id") != null) {
+      // Other orders the same rider still has on the road (the sidecar may go to them first).
+      otherStops = V.lng(db.one("SELECT COUNT(*) AS n FROM orders WHERE rider_id = ? AND status = 'Out for Delivery' AND order_id <> ?",
+          o.get("rider_id"), o.get("order_id")).get("n"));
       Map<String, Object> l = db.one("SELECT latitude, longitude, updated_at, is_sharing FROM rider_locations WHERE rider_id = ?", o.get("rider_id"));
       if (l != null && V.truthy(l.get("is_sharing"))) {
         rider = M.of("id", V.lng(o.get("rider_id")), "lat", V.num(l.get("latitude")), "lng", V.num(l.get("longitude")), "updatedAt", l.get("updated_at"));
       }
     }
     return M.of("order", Orders.shapeOrder(o, station), "timeline", orders.timeline(V.lng(o.get("order_id"))), "stationPhone", station.phone(),
-        "rider", rider, "station", M.of("lat", station.lat(), "lng", station.lng()));
+        "rider", rider, "otherStops", otherStops, "station", M.of("lat", station.lat(), "lng", station.lng()));
   }
 
-  /** POST /api/orders { type: Refill|Package, quantity, address: {...} | addressId | fromOrderId, phone, notes, name (guests) } */
+  /** Customers can choose a delivery day up to this many days ahead. */
+  public static final int MAX_DAYS_AHEAD = 7;
+
+  /** "2026-10-22" -> that day; empty or today -> null (as soon as possible). */
+  static String deliveryDate(Object raw) {
+    if (!V.truthy(raw)) return null;
+    String d = String.valueOf(raw).trim();
+    String today = Clock.ymd(Clock.now());
+    String last = Clock.ymd(Clock.now().plusSeconds(MAX_DAYS_AHEAD * 86400L));
+    HttpError bad = HttpError.bad("DATE_INVALID", "Delivery date not valid", "Choose today or a day up to " + MAX_DAYS_AHEAD + " days ahead.", "field", "deliveryDate");
+    if (!d.matches("^\\d{4}-\\d{2}-\\d{2}$")) throw bad;
+    try {
+      java.time.LocalDate.parse(d);
+    } catch (Exception e) {
+      throw bad;
+    }
+    if (d.compareTo(today) < 0 || d.compareTo(last) > 0) throw bad;
+    return d.equals(today) ? null : d;
+  }
+
+  /** POST /api/orders { type: Refill|Package, quantity, address: {...} | addressId | fromOrderId, phone, notes, name (guests), deliveryDate } */
   @PostMapping
   public ResponseEntity<Map<String, Object>> place(HttpServletRequest req, @RequestBody(required = false) Map<String, Object> raw) {
     W w = who(req);
@@ -149,6 +173,7 @@ public class OrdersApi {
     String name = user != null ? String.valueOf(user.get("full_name")) : b.text("name", 100);
     if (name.isEmpty()) throw HttpError.bad("NAME_MISSING", "Name missing", "Type your name so the rider knows who to look for.", "field", "name");
 
+    String day = deliveryDate(b.get("deliveryDate"));
     double unit = settings.price("Package".equals(type) ? "package" : "delivery");
     Instant t = Clock.now();
     String notes = b.text("notes", 255);
@@ -157,8 +182,8 @@ public class OrdersApi {
       long oid = db.insert(
           "INSERT INTO orders (order_source, order_type, customer_id, guest_token, customer_name, contact_phone, address_id,"
               + " delivery_address_text, delivery_landmark, delivery_latitude, delivery_longitude, quantity, unit_price, total_amount,"
-              + " notes, status, payment_method, payment_status, created_at)"
-              + " VALUES ('App', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', 'COD', 'Pending', ?)",
+              + " notes, delivery_date, status, payment_method, payment_status, created_at)"
+              + " VALUES ('App', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', 'COD', 'Pending', ?)",
           type,
           user != null ? Auth.id(user) : null,
           user != null ? null : w.who().guestToken(),
@@ -173,9 +198,11 @@ public class OrdersApi {
           unit,
           unit * qty,
           notes.isEmpty() ? null : notes,
+          day,
           t);
       orders.addHistory(oid, "Waiting for order to be accepted", user != null ? Auth.id(user) : null, null, t);
-      orders.notifyOwner("New Order", "New order", name + ": " + qty + " " + (qty == 1 ? "gallon" : "gallons") + " · " + type, oid);
+      orders.notifyOwner("New Order", "New order", name + ": " + qty + " " + (qty == 1 ? "gallon" : "gallons") + " · " + type
+          + " · ordered " + Clock.dateClock(t) + (day == null ? "" : " · deliver on " + Clock.dateText(Clock.noonOf(day))), oid);
       return oid;
     });
     Map<String, Object> o = orders.orderRow(id);

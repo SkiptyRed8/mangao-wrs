@@ -131,6 +131,7 @@ CREATE TABLE orders (
   unit_price DECIMAL(8,2) NOT NULL COMMENT 'Copied from the price list when ordered',
   total_amount DECIMAL(10,2) NOT NULL,
   notes VARCHAR(255) NULL,
+  delivery_date DATE NULL COMMENT 'Day the customer chose for the delivery; NULL = as soon as possible',
   status ENUM('New','Processing','Out for Delivery','Delivered','Not Delivered','Declined','Cancelled','Recorded') NOT NULL,
   payment_method ENUM('COD','Pay on delivery','Paid at station','Walk-in') NOT NULL,
   payment_status ENUM('Pending','Paid','Unpaid') NOT NULL DEFAULT 'Pending',

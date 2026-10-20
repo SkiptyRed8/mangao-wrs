@@ -69,6 +69,17 @@ public class MapApi {
           "minutesAgo", up != null ? Math.max(0, Math.round((t - up.toEpochMilli()) / 60000.0)) : null,
           "orders", mine));
     }
+    // One sidecar on the map (the station has one delivery rider for now): the rider whose place was
+    // updated last. Orders of another rider still show as pins.
+    if (riderOut.size() > 1) {
+      Map<String, Object> best = null;
+      for (Map<String, Object> r : riderOut) {
+        if (r.get("lat") == null) continue;
+        Instant u = (Instant) r.get("updatedAt");
+        if (best == null || (u != null && (best.get("updatedAt") == null || u.isAfter((Instant) best.get("updatedAt"))))) best = r;
+      }
+      riderOut = best == null ? new ArrayList<>(riderOut.subList(0, 1)) : new ArrayList<>(List.of(best));
+    }
     List<Map<String, Object>> orderOut = new ArrayList<>();
     int i = 0;
     for (Map<String, Object> o : rows) {

@@ -59,6 +59,10 @@ public class Migrate {
         done.add("station pin on Riverside Street");
       }
     }
+    if (!columnExists("orders", "delivery_date")) {
+      db.update("ALTER TABLE orders ADD COLUMN delivery_date DATE NULL COMMENT 'Day the customer chose for the delivery; NULL = as soon as possible' AFTER notes");
+      done.add("delivery date");
+    }
     return done;
   }
 }

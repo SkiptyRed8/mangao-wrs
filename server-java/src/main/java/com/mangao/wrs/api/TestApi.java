@@ -6,6 +6,7 @@ import com.mangao.wrs.core.Env;
 import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.service.Migrate;
+import com.mangao.wrs.service.OrderTimeouts;
 import com.zaxxer.hikari.HikariDataSource;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -24,10 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestApi {
   private final Migrate migrate;
   private final DataSource ds;
+  private final OrderTimeouts timeouts;
 
-  public TestApi(Migrate migrate, DataSource ds) {
+  public TestApi(Migrate migrate, DataSource ds, OrderTimeouts timeouts) {
     this.migrate = migrate;
     this.ds = ds;
+    this.timeouts = timeouts;
+  }
+
+  /** Runs the 15-minute reminder / 30-minute cancel check at the test clock. */
+  @PostMapping("/sweep")
+  public Map<String, Object> sweep() {
+    only();
+    return timeouts.sweep(Clock.now());
   }
 
   private static void only() {

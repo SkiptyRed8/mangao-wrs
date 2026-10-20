@@ -157,17 +157,26 @@ public class AdminOrdersApi {
       if (rows.size() != ids.size()) {
         throw HttpError.conflict("ALREADY_HANDLED", "Some orders changed", "An order was cancelled or already handled. The list is refreshed.");
       }
-      db.update("UPDATE orders SET status = 'Processing', rider_id = ?, accepted_by = ?, accepted_at = ?, est_delivery_from = ?, est_delivery_to = ? WHERE order_id IN (?)",
-          rider.get("user_id"), Auth.id(me), t, est.from(), est.to(), ids);
       for (Map<String, Object> o : rows) {
         long oid = V.lng(o.get("order_id"));
+        // A delivery day chosen by the customer gives that day's delivery hours.
+        Clock.Est e = Clock.estimatedDelivery(t, deliveryDay(o));
+        String w = Clock.deliveryText(e.from(), e.to());
+        db.update("UPDATE orders SET status = 'Processing', rider_id = ?, accepted_by = ?, accepted_at = ?, est_delivery_from = ?, est_delivery_to = ? WHERE order_id = ?",
+            rider.get("user_id"), Auth.id(me), t, e.from(), e.to(), oid);
         orders.addHistory(oid, "Order accepted", Auth.id(me), "Rider: " + riderLabel(rider), t);
-        orders.addHistory(oid, "Processing", Auth.id(me), "Delivery " + when, t);
+        orders.addHistory(oid, "Processing", Auth.id(me), "Delivery " + w, t);
         orders.notifyCustomer(o, "Order Accepted", "Order accepted",
-            "Your " + ("Package".equals(o.get("order_type")) ? "package" : "refill") + " order is processing. Estimated delivery: " + when + ".");
+            "Your " + ("Package".equals(o.get("order_type")) ? "package" : "refill") + " order is processing. Estimated delivery: " + w + ".");
       }
     });
     return M.of("accepted", ids.size(), "estText", when, "message", ids.size() == 1 ? "Accepted. Customer notified." : ids.size() + " orders accepted");
+  }
+
+  /** The delivery day the customer chose ('YYYY-MM-DD'), or null. */
+  static String deliveryDay(Map<String, Object> o) {
+    Object d = o.get("delivery_date");
+    return d == null ? null : String.valueOf(d).substring(0, 10);
   }
 
   private static String reason(Body b, List<String> allowed, String pickMessage, String chooseTitle) {
@@ -237,7 +246,7 @@ public class AdminOrdersApi {
     Map<String, Object> me = auth.require(req, "Owner");
     Map<String, Object> o = getOrder(id);
     Instant t = Clock.now();
-    Clock.Est est = Clock.estimatedDelivery(t);
+    Clock.Est est = Clock.estimatedDelivery(t, deliveryDay(o));
     long oid = V.lng(o.get("order_id"));
     String when = Clock.deliveryText(est.from(), est.to());
     db.txRun(() -> {

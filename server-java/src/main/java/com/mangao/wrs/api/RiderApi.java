@@ -7,6 +7,7 @@ import com.mangao.wrs.core.Db;
 import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.core.V;
+import com.mangao.wrs.service.Arrivals;
 import com.mangao.wrs.service.DemoRide;
 import com.mangao.wrs.service.Orders;
 import com.mangao.wrs.service.Process;
@@ -36,9 +37,11 @@ public class RiderApi {
   private final Process process;
   private final Realtime realtime;
   private final DemoRide demoRide;
+  private final Arrivals arrivals;
 
-  public RiderApi(Db db, Auth auth, Orders orders, Process process, Realtime realtime, DemoRide demoRide) {
+  public RiderApi(Db db, Auth auth, Orders orders, Process process, Realtime realtime, DemoRide demoRide, Arrivals arrivals) {
     this.demoRide = demoRide;
+    this.arrivals = arrivals;
     this.db = db;
     this.auth = auth;
     this.orders = orders;
@@ -123,6 +126,7 @@ public class RiderApi {
             + " ON DUPLICATE KEY UPDATE batch_id = VALUES(batch_id), latitude = VALUES(latitude), longitude = VALUES(longitude), is_sharing = 1, updated_at = VALUES(updated_at)",
         uid, out.get("batch_id"), String.format(java.util.Locale.ROOT, "%.7f", lat), String.format(java.util.Locale.ROOT, "%.7f", lng), t);
     realtime.location(uid, M.of("lat", lat, "lng", lng, "at", t, "sharing", true));
+    arrivals.check(uid, lat, lng); // "arriving" / "has arrived" for the customers
     return M.of("sharing", true);
   }
 

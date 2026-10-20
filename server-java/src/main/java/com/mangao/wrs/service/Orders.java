@@ -166,6 +166,8 @@ public class Orders {
         "deliveredAt", delivered,
         "deliveredClock", delivered != null ? Clock.clock(delivered) : "",
         "createdAt", o.get("created_at"),
+        "createdText", V.instant(o.get("created_at")) != null ? Clock.dateClock(V.instant(o.get("created_at"))) : "",
+        "deliveryDate", o.get("delivery_date") == null ? null : String.valueOf(o.get("delivery_date")).substring(0, 10),
         "reason", V.s(o.get("reason")));
   }
 

@@ -39,11 +39,13 @@ public class DemoRide {
   private final Realtime realtime;
   private final Routes routes;
   private final Orders orders;
+  private final Arrivals arrivals;
   private final AtomicBoolean on = new AtomicBoolean("true".equalsIgnoreCase(Env.get("DEMO_RIDE", "false").trim()));
   private final Map<Long, Ride> rides = new ConcurrentHashMap<>();
   private ScheduledExecutorService timer;
 
-  public DemoRide(Db db, Realtime realtime, Routes routes, Orders orders) {
+  public DemoRide(Db db, Realtime realtime, Routes routes, Orders orders, Arrivals arrivals) {
+    this.arrivals = arrivals;
     this.db = db;
     this.realtime = realtime;
     this.routes = routes;
@@ -142,6 +144,7 @@ public class DemoRide {
             + " ON DUPLICATE KEY UPDATE batch_id = VALUES(batch_id), latitude = VALUES(latitude), longitude = VALUES(longitude), is_sharing = 1, updated_at = VALUES(updated_at)",
         riderId, out.get("batch_id"), String.format(Locale.ROOT, "%.7f", lat), String.format(Locale.ROOT, "%.7f", lng), t);
     realtime.location(riderId, M.of("lat", lat, "lng", lng, "at", t, "sharing", true));
+    arrivals.check(riderId, lat, lng);
   }
 
   /** One rider's demo trip: the street line, the stops on it, and how far along it the sidecar is. */
