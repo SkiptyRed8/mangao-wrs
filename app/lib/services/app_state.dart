@@ -44,6 +44,9 @@ class AppState extends ChangeNotifier {
   /// Logged-in users are logged out after this long without touching the app (also when the app
   /// was closed or in the background), and have to log in again.
   static const idleLimit = Duration(minutes: 2);
+
+  /// Off for now (Oct 20): users stay logged in. Set to true to log users out after [idleLimit].
+  static const idleLogoutOn = false;
   static const expiredNote = 'Session expired. You were away for 2 minutes, so you were logged out. Log in again.';
 
   DateTime _lastActive = DateTime.now();
@@ -56,7 +59,7 @@ class AppState extends ChangeNotifier {
   /// Called on every touch of the screen (main.dart).
   void touch() {
     final now = DateTime.now();
-    if (loggedIn && now.difference(_lastActive) >= idleLimit) {
+    if (idleLogoutOn && loggedIn && now.difference(_lastActive) >= idleLimit) {
       expire(); // came back after the limit: log out instead of continuing
       return;
     }
@@ -80,11 +83,13 @@ class AppState extends ChangeNotifier {
 
   /// Checks the time without use (every few seconds and when the app comes back to the screen).
   void checkIdle() {
+    if (!idleLogoutOn) return;
     if (loggedIn && DateTime.now().difference(_lastActive) >= idleLimit) expire();
   }
 
   void _startIdleTimer() {
     _idleTimer?.cancel();
+    if (!idleLogoutOn) return;
     _idleTimer = Timer.periodic(const Duration(seconds: 5), (_) => checkIdle());
   }
 
@@ -140,7 +145,7 @@ class AppState extends ChangeNotifier {
     }
     // Not used for 2 minutes (or more) since the app was last open: the session has expired.
     final last = prefs.getInt(_kActive);
-    if (last == null || DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(last)) >= idleLimit) {
+    if (idleLogoutOn && (last == null || DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(last)) >= idleLimit)) {
       await _clear(prefs);
       sessionEnded = true;
       loginNote = expiredNote;

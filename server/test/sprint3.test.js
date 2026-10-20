@@ -46,6 +46,13 @@ describe('Live location and live map (step 34)', () => {
     await as(owner, api().post('/api/admin/orders/accept')).send({ ids: [maria.order_id], riderId: juan.user_id });
     await as(staff, api().post('/api/work/out')).send({ ids: [maria.order_id] });
 
+    if (API_URL) {
+      // The sidecar starts at the station until the rider's phone sends its place.
+      const start = await as(staff, api().get('/api/map'));
+      assert.equal(start.body.riders[0].lat, 14.692823);
+      assert.equal(start.body.riders[0].lng, 121.0871699);
+    }
+
     const on = await as(rider, api().post('/api/rider/location')).send({ lat: 14.6901, lng: 121.0801 });
     assert.equal(on.body.sharing, true);
 
@@ -436,3 +443,28 @@ async function javaRealtime() {
     anaSock.close();
   }
 }
+
+describe('Live map route and demo ride', () => {
+  test('route between two places: points, meters, seconds (streets or a straight line)', async () => {
+    if (!API_URL) return;
+    const r = await api().get('/api/geo/route?from=14.692823,121.0871699&to=14.6901,121.0801');
+    assert.equal(r.status, 200);
+    assert.ok(r.body.points.length >= 2);
+    assert.ok(r.body.meters > 500 && r.body.meters < 5000, String(r.body.meters));
+    assert.ok(r.body.seconds > 0);
+    assert.equal(typeof r.body.streets, 'boolean');
+    assert.equal((await api().get('/api/geo/route?from=abc&to=14.69,121.08')).status, 400);
+  });
+
+  test('owner turns the demo ride on and off; others cannot', async () => {
+    if (!API_URL) return;
+    const on = await as(owner, api().put('/api/settings/demo-ride')).send({ on: true });
+    assert.equal(on.status, 200);
+    assert.equal(on.body.demoRide, true);
+    assert.equal((await as(owner, api().get('/api/settings'))).body.demoRide, true);
+    const off = await as(owner, api().put('/api/settings/demo-ride')).send({ on: false });
+    assert.equal(off.body.demoRide, false);
+    assert.equal((await as(owner, api().put('/api/settings/demo-ride')).send({})).status, 400);
+    assert.equal((await as(staff, api().put('/api/settings/demo-ride')).send({ on: true })).status, 403);
+  });
+});

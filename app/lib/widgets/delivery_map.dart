@@ -1,17 +1,17 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import '../services/app_state.dart';
 import '../theme/brand.dart';
 
 // Delivery map pieces used by the customer's order tracking and the owner/staff Live Map:
 // the sidecar marker (turns to the direction it moves and glides to each new place), the route
-// along the streets (OSRM, OpenStreetMap data) with a straight line when the route service does not
-// answer, and the "About 6 min away · 1.8 km" text.
+// along the streets (our server asks OSRM, OpenStreetMap roads) with a straight line when it is not
+// available, the light line of the part already travelled from the station, and the
+// "About 6 min away · 1.8 km" text.
 
 const _earthMeters = 6371000.0;
 double _rad(double d) => d * math.pi / 180;
@@ -61,29 +61,20 @@ String etaText(RouteResult r) {
 /// Short form for the marker label on the Live Map: "6 min".
 String etaShort(RouteResult r) => r.meters < 60 ? 'Arriving' : '${math.max(1, (r.seconds / 60).ceil())} min';
 
-/// Routes from the free OSRM route service (open-source, OpenStreetMap roads). If it does not answer
-/// within 8 seconds, a straight line with about 20 km/h city speed is used, so the map always works.
+/// Routes along the streets from our server (GET /api/geo/route), which asks the free OSRM route service
+/// (open-source routing on OpenStreetMap roads). If there is no answer, a straight line with about
+/// 20 km/h city speed is used, so the map always works.
 class RouteService {
-  static const _base = 'https://router.project-osrm.org/route/v1/driving';
   static const _citySpeed = 20000 / 3600; // meters per second
 
   static Future<RouteResult> route(LatLng from, LatLng to) async {
     try {
-      final url = Uri.parse('$_base/${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
-          '?overview=full&geometries=geojson');
-      final res = await http.get(url).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final j = jsonDecode(res.body);
-        if (j is Map<String, dynamic> && j['code'] == 'Ok' && j['routes'] is List && (j['routes'] as List).isNotEmpty) {
-          final r = (j['routes'] as List).first as Map<String, dynamic>;
-          final coords = (r['geometry'] as Map<String, dynamic>)['coordinates'] as List;
-          final pts = [
-            for (final c in coords) LatLng(((c as List)[1] as num).toDouble(), (c[0] as num).toDouble()),
-          ];
-          if (pts.length >= 2) {
-            return RouteResult(pts, (r['distance'] as num).toDouble(), (r['duration'] as num).toDouble(), true);
-          }
-        }
+      final r = await app.api.get('/api/geo/route?from=${from.latitude},${from.longitude}&to=${to.latitude},${to.longitude}');
+      final pts = [
+        for (final p in r['points'] as List) LatLng(((p as List)[0] as num).toDouble(), (p[1] as num).toDouble()),
+      ];
+      if (pts.length >= 2) {
+        return RouteResult(pts, (r['meters'] as num).toDouble(), (r['seconds'] as num).toDouble(), r['streets'] == true);
       }
     } catch (_) {}
     return straight(from, to);
@@ -165,6 +156,45 @@ class RouteTracker {
   }
 }
 
+/// The planned trip from the station to the stop, fetched once. Its first part, up to where the rider
+/// is now, is drawn as a light line (the way already travelled), like Grab.
+class PlannedRoute {
+  final VoidCallback onChange;
+  PlannedRoute(this.onChange);
+
+  RouteResult? _route;
+  LatLng? _from, _to;
+  bool _loading = false;
+  bool _disposed = false;
+
+  void dispose() => _disposed = true;
+
+  void update(LatLng from, LatLng to) {
+    if (_loading) return;
+    if (_route != null && metersBetween(_from!, from) < 30 && metersBetween(_to!, to) < 30) return;
+    _loading = true;
+    _from = from;
+    _to = to;
+    RouteService.route(from, to).then((r) {
+      _loading = false;
+      if (_disposed) return;
+      _route = r;
+      onChange();
+    });
+  }
+
+  /// From the station to the rider (null when the rider is not on the planned way).
+  List<LatLng>? travelled(LatLng rider) {
+    final r = _route;
+    if (r == null) return null;
+    if (!r.streets) return metersBetween(r.points.first, rider) < 10 ? null : [r.points.first, rider];
+    final i = RouteTracker._nearest(rider, r.points);
+    if (metersBetween(rider, r.points[i]) > 150) return null;
+    final pts = [...r.points.sublist(0, i + 1), rider];
+    return pts.length >= 2 ? pts : null;
+  }
+}
+
 /// Moves a LatLng smoothly between two places (for the gliding marker).
 class LatLngTween extends Tween<LatLng> {
   LatLngTween({super.begin, super.end});
@@ -176,8 +206,17 @@ class LatLngTween extends Tween<LatLng> {
   }
 }
 
-/// The route line: blue with a white edge; dashed when it is only a straight line.
-PolylineLayer routeLayer(RouteResult? r) => PolylineLayer(polylines: [
+/// The route lines: the way already travelled from the station (light), and the way ahead (blue with
+/// a white edge; dashed when it is only a straight line).
+PolylineLayer routeLayer(RouteResult? r, {List<LatLng>? travelled}) => PolylineLayer(polylines: [
+      if (travelled != null && travelled.length >= 2)
+        Polyline(
+          points: travelled,
+          strokeWidth: 5,
+          color: Brand.blue.withValues(alpha: 0.35),
+          borderStrokeWidth: 1.5,
+          borderColor: Colors.white.withValues(alpha: 0.8),
+        ),
       if (r != null && r.points.length >= 2)
         Polyline(
           points: r.points,
@@ -241,6 +280,22 @@ class SidecarLayer extends StatelessWidget {
     );
   }
 }
+
+/// The station on the map: a blue circle with a water drop.
+Marker stationMarker(LatLng p) => Marker(
+      point: p,
+      width: 34,
+      height: 34,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Brand.blue,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2.5),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        ),
+        child: const Icon(Icons.water_drop, color: Colors.white, size: 18),
+      ),
+    );
 
 /// The customer's delivery address on the map: a white circle with a house.
 Marker homeMarker(LatLng p) => Marker(
@@ -359,8 +414,11 @@ class _SidecarPainter extends CustomPainter {
 class DeliveryMap extends StatefulWidget {
   final LatLng? home;
   final LatLng? rider;
+
+  /// The station: the trip starts here (light line of the way already travelled).
+  final LatLng? start;
   final double height;
-  const DeliveryMap({super.key, required this.home, required this.rider, this.height = 260});
+  const DeliveryMap({super.key, required this.home, required this.rider, this.start, this.height = 260});
 
   @override
   State<DeliveryMap> createState() => _DeliveryMapState();
@@ -371,8 +429,14 @@ class _DeliveryMapState extends State<DeliveryMap> {
   late final RouteTracker _route = RouteTracker(() {
     if (mounted) setState(() {});
   });
+  late final PlannedRoute _planned = PlannedRoute(() {
+    if (mounted) setState(() {});
+  });
   double _heading = 0;
   bool _fitted = false;
+
+  /// The rider's place; before the first GPS place the sidecar waits at the station.
+  LatLng? get _rider => widget.rider ?? widget.start;
 
   @override
   void initState() {
@@ -383,27 +447,33 @@ class _DeliveryMapState extends State<DeliveryMap> {
   @override
   void didUpdateWidget(DeliveryMap old) {
     super.didUpdateWidget(old);
-    _follow(old.rider);
+    _follow(old.rider ?? old.start);
   }
 
   @override
   void dispose() {
     _route.dispose();
+    _planned.dispose();
     super.dispose();
   }
 
   void _follow(LatLng? before) {
-    final r = widget.rider, h = widget.home;
+    final r = _rider, h = widget.home;
     if (r == null) return;
     if (before != null && metersBetween(before, r) > 4) _heading = nextHeading(_heading, bearingBetween(before, r));
     if (before == null && h != null) _heading = bearingBetween(r, h); // face the customer at first
     if (h != null) _route.update(r, h);
+    if (h != null && widget.start != null) _planned.update(widget.start!, h);
     if (!_fitted) WidgetsBinding.instance.addPostFrameCallback((_) => _fit());
   }
 
   /// Shows both the rider and the delivery address.
   void _fit() {
-    final pts = [if (widget.rider != null) widget.rider!, if (widget.home != null) widget.home!];
+    final pts = [
+      if (widget.start != null) widget.start!,
+      if (_rider != null) _rider!,
+      if (widget.home != null) widget.home!,
+    ];
     if (pts.isEmpty || !mounted) return;
     try {
       if (pts.length == 1) {
@@ -417,7 +487,7 @@ class _DeliveryMapState extends State<DeliveryMap> {
 
   @override
   Widget build(BuildContext context) {
-    final r = widget.rider, h = widget.home;
+    final r = _rider, h = widget.home;
     final view = r == null ? null : _route.view(r);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
@@ -447,8 +517,11 @@ class _DeliveryMapState extends State<DeliveryMap> {
               ),
               children: [
                 TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.mangao.mangao_wrs'),
-                routeLayer(view),
-                if (h != null) MarkerLayer(markers: [homeMarker(h)]),
+                routeLayer(view, travelled: r == null ? null : _planned.travelled(r)),
+                MarkerLayer(markers: [
+                  if (widget.start != null) stationMarker(widget.start!),
+                  if (h != null) homeMarker(h),
+                ]),
                 if (r != null) SidecarLayer(point: r, heading: _heading),
                 const SimpleAttributionWidget(source: Text('OpenStreetMap contributors')),
               ],

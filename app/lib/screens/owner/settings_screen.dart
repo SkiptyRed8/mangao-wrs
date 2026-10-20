@@ -96,6 +96,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// Demo ride on/off (testing and presentations).
+  Future<void> _setDemoRide(bool on) async {
+    try {
+      final r = await app.api.put('/api/settings/demo-ride', {'on': on});
+      if (mounted) toast(context, (r['message'] ?? 'Saved') as String);
+    } on ApiException catch (e) {
+      if (mounted) toast(context, '${e.title}. ${e.message}', error: true);
+    }
+    await _reload();
+  }
+
   Widget _card(String title, String button, VoidCallback onTap, List<Widget> rows) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Box(
@@ -149,6 +160,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
             ]),
+            Box(
+              child: Row(children: [
+                const Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Demo ride', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    Gap(2),
+                    Text(
+                      'For testing and presentations: the sidecar drives by itself from the station along the streets to '
+                      'each stop (about 2 minutes per trip) and waits there until the rider marks the order. '
+                      'Turn it off for real deliveries, so the rider\'s phone moves the sidecar.',
+                      style: TextStyle(color: Brand.muted, fontSize: 12.5),
+                    ),
+                  ]),
+                ),
+                const SizedBox(width: 8),
+                Switch(value: s['demoRide'] == true, onChanged: _setDemoRide),
+              ]),
+            ),
           ]);
         },
       ),

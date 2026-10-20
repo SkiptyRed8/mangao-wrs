@@ -7,6 +7,7 @@ import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.core.V;
 import com.mangao.wrs.service.Addresses;
+import com.mangao.wrs.service.Routes;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -36,6 +37,11 @@ public class GeoApi {
   private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6)).build();
   private final ObjectMapper json = new ObjectMapper();
   private final Map<String, JsonNode> cache = new ConcurrentHashMap<>();
+  private final Routes routes;
+
+  public GeoApi(Routes routes) {
+    this.routes = routes;
+  }
 
   private JsonNode nominatim(String path) {
     JsonNode c = cache.get(path);
@@ -114,5 +120,26 @@ public class GeoApi {
           "lat", V.num(r.path("lat").asText()), "lng", V.num(r.path("lon").asText())));
     }
     return M.of("results", out);
+  }
+
+  private static double[] point(String text) {
+    String[] p = text == null ? new String[0] : text.split(",");
+    double lat = p.length == 2 ? V.num(p[0].trim()) : Double.NaN, lng = p.length == 2 ? V.num(p[1].trim()) : Double.NaN;
+    if (Double.isNaN(lat) || Double.isNaN(lng) || lat < 4 || lat > 22 || lng < 116 || lng > 127) {
+      throw HttpError.bad("LOCATION_INVALID", "Location not valid", "The map could not use this place.");
+    }
+    return new double[] {lat, lng};
+  }
+
+  /**
+   * GET /api/geo/route?from=lat,lng&to=lat,lng -> { points: [[lat, lng], ...], meters, seconds, streets }
+   * The route along the streets for the live map (streets false: a straight line, the route service did not answer).
+   */
+  @GetMapping("/route")
+  public Map<String, Object> route(@RequestParam(required = false) String from, @RequestParam(required = false) String to) {
+    Routes.Route r = routes.route(List.of(point(from), point(to)));
+    List<List<Double>> pts = new ArrayList<>();
+    for (double[] p : r.points()) pts.add(List.of(Math.round(p[0] * 1e6) / 1e6, Math.round(p[1] * 1e6) / 1e6));
+    return M.of("points", pts, "meters", Math.round(r.meters()), "seconds", Math.round(r.seconds()), "streets", r.streets());
   }
 }

@@ -133,7 +133,7 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
                 ],
                 if (o.status == 'Out for Delivery') ...[
                   const Gap(10),
-                  RiderMap(order: o, rider: d['rider'] as Map<String, dynamic>?),
+                  RiderMap(order: o, rider: d['rider'] as Map<String, dynamic>?, station: d['station'] as Map<String, dynamic>?),
                 ],
                 if (o.status == 'Declined') ...[
                   const Gap(10),
@@ -232,12 +232,14 @@ class StatusSteps extends StatelessWidget {
   }
 }
 
-/// Customer 5 / 11: live map while Out for Delivery: the sidecar (the rider) moving along the route
-/// to the delivery address, and the time left ("About 6 min away · 1.8 km").
+/// Customer 5 / 11: live map while Out for Delivery: the sidecar (the rider) starts at the station and
+/// moves along the route to the delivery address (light line behind it, blue line ahead), and the
+/// time left ("About 6 min away · 1.8 km").
 class RiderMap extends StatelessWidget {
   final Order order;
   final Map<String, dynamic>? rider;
-  const RiderMap({super.key, required this.order, this.rider});
+  final Map<String, dynamic>? station;
+  const RiderMap({super.key, required this.order, this.rider, this.station});
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +247,9 @@ class RiderMap extends StatelessWidget {
     final r = rider == null || rider!['lat'] == null
         ? null
         : LatLng((rider!['lat'] as num).toDouble(), (rider!['lng'] as num).toDouble());
-    return DeliveryMap(home: home, rider: r);
+    final start = station == null || station!['lat'] == null
+        ? null
+        : LatLng((station!['lat'] as num).toDouble(), (station!['lng'] as num).toDouble());
+    return DeliveryMap(home: home, rider: r, start: start);
   }
 }

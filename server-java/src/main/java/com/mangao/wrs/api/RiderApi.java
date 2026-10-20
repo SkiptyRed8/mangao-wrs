@@ -7,6 +7,7 @@ import com.mangao.wrs.core.Db;
 import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.core.V;
+import com.mangao.wrs.service.DemoRide;
 import com.mangao.wrs.service.Orders;
 import com.mangao.wrs.service.Process;
 import com.mangao.wrs.service.Realtime;
@@ -34,8 +35,10 @@ public class RiderApi {
   private final Orders orders;
   private final Process process;
   private final Realtime realtime;
+  private final DemoRide demoRide;
 
-  public RiderApi(Db db, Auth auth, Orders orders, Process process, Realtime realtime) {
+  public RiderApi(Db db, Auth auth, Orders orders, Process process, Realtime realtime, DemoRide demoRide) {
+    this.demoRide = demoRide;
     this.db = db;
     this.auth = auth;
     this.orders = orders;
@@ -114,6 +117,7 @@ public class RiderApi {
       db.update("UPDATE rider_locations SET is_sharing = 0 WHERE rider_id = ?", uid);
       return M.of("sharing", false);
     }
+    if (demoRide.riding(uid)) return M.of("sharing", true); // the demo ride moves the sidecar
     Instant t = Clock.now();
     db.update("INSERT INTO rider_locations (rider_id, batch_id, latitude, longitude, is_sharing, updated_at) VALUES (?, ?, ?, ?, 1, ?)"
             + " ON DUPLICATE KEY UPDATE batch_id = VALUES(batch_id), latitude = VALUES(latitude), longitude = VALUES(longitude), is_sharing = 1, updated_at = VALUES(updated_at)",

@@ -7,6 +7,7 @@ import com.mangao.wrs.core.Db;
 import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.core.V;
+import com.mangao.wrs.service.DemoRide;
 import com.mangao.wrs.service.Orders;
 import com.mangao.wrs.service.Process;
 import com.mangao.wrs.service.Settings;
@@ -39,8 +40,10 @@ public class WorkApi {
   private final Orders orders;
   private final Process process;
   private final Settings settings;
+  private final DemoRide demoRide;
 
-  public WorkApi(Db db, Auth auth, Orders orders, Process process, Settings settings) {
+  public WorkApi(Db db, Auth auth, Orders orders, Process process, Settings settings, DemoRide demoRide) {
+    this.demoRide = demoRide;
     this.db = db;
     this.auth = auth;
     this.orders = orders;
@@ -194,6 +197,7 @@ public class WorkApi {
     if (ids.isEmpty()) throw HttpError.bad("NONE_SELECTED", "No orders selected", "Tick at least one order in Processing.");
     Instant t = Clock.now();
     long uid = Auth.id(me);
+    List<Long> riders = new ArrayList<>();
     List<Map<String, Object>> batches = db.tx(() -> {
       List<Map<String, Object>> rows = db.query(
           "SELECT o.*, u.full_name AS rider_name, u.role AS rider_role FROM orders o LEFT JOIN users u ON u.user_id = o.rider_id"
@@ -210,6 +214,7 @@ public class WorkApi {
         long rider = e.getKey();
         List<Map<String, Object>> list = e.getValue();
         long batch = db.insert("INSERT INTO delivery_batches (rider_id, sent_by, sent_at) VALUES (?, ?, ?)", rider, uid, t);
+        riders.add(rider);
         Map<String, Object> f = list.get(0);
         String riderLabel = "Owner".equals(f.get("rider_role")) || !V.truthy(f.get("rider_name")) ? "Owner" : Orders.firstName(f.get("rider_name"));
         List<Long> ordersOut = new ArrayList<>();
@@ -225,6 +230,14 @@ public class WorkApi {
       }
       return outList;
     });
+    // The sidecar starts at the station (and drives by itself when the demo ride is on).
+    for (long rider : riders) {
+      try {
+        demoRide.startAtStation(rider);
+      } catch (Exception e) {
+        System.err.println("[map] start at station: " + e.getMessage());
+      }
+    }
     int n = ids.size();
     return M.of("batches", batches, "message", n == 1 ? "Out for delivery. Customer notified." : n + " orders out for delivery");
   }

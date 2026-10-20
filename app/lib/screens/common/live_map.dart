@@ -37,6 +37,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   bool _centered = false;
   final Map<Object?, double> _heading = {}; // rider id -> direction the sidecar faces
   final Map<Object?, RouteTracker> _routes = {}; // rider id -> route to the nearest stop
+  final Map<Object?, PlannedRoute> _planned = {}; // rider id -> station to that stop (light line behind)
 
   @override
   void initState() {
@@ -72,6 +73,9 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
     _poll?.cancel();
     _live?.cancel();
     for (final t in _routes.values) {
+      t.dispose();
+    }
+    for (final t in _planned.values) {
       t.dispose();
     }
     super.dispose();
@@ -111,6 +115,14 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           }));
       t.update(at, _pos(stop)!);
       _heading.putIfAbsent(r['id'], () => bearingBetween(at, _pos(stop)!));
+      final station = _pos(d['station'] as Map<String, dynamic>);
+      if (station != null) {
+        _planned
+            .putIfAbsent(r['id'], () => PlannedRoute(() {
+                  if (mounted) setState(() {});
+                }))
+            .update(station, _pos(stop)!);
+      }
     }
   }
 
@@ -246,7 +258,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.mangao.mangao_wrs'),
             for (final r in riders.cast<Map<String, dynamic>>())
-              if (((r['minutesAgo'] ?? 99) as num) <= 5) routeLayer(_routeOf(r)),
+              if (((r['minutesAgo'] ?? 99) as num) <= 5 && _nextStop(r) != null)
+                routeLayer(_routeOf(r), travelled: _planned[r['id']]?.travelled(_pos(r)!)),
             MarkerLayer(markers: [
               if (station != null && station['lat'] != null)
                 Marker(

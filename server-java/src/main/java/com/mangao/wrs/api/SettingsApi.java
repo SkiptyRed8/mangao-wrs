@@ -6,6 +6,7 @@ import com.mangao.wrs.core.Db;
 import com.mangao.wrs.core.HttpError;
 import com.mangao.wrs.core.M;
 import com.mangao.wrs.core.V;
+import com.mangao.wrs.service.DemoRide;
 import com.mangao.wrs.service.Settings;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
@@ -35,8 +36,10 @@ public class SettingsApi {
   private final Db db;
   private final Auth auth;
   private final Settings settings;
+  private final DemoRide demoRide;
 
-  public SettingsApi(Db db, Auth auth, Settings settings) {
+  public SettingsApi(Db db, Auth auth, Settings settings, DemoRide demoRide) {
+    this.demoRide = demoRide;
     this.db = db;
     this.auth = auth;
     this.settings = settings;
@@ -56,7 +59,20 @@ public class SettingsApi {
     auth.require(req, "Owner");
     Map<String, Object> out = M.of("prices", settings.currentPrices());
     out.putAll(settings.stationSettings());
+    out.put("demoRide", demoRide.isOn());
     return out;
+  }
+
+  /** PUT /api/settings/demo-ride { on } -> { demoRide, message }  (testing and presentations) */
+  @PutMapping("/demo-ride")
+  public Map<String, Object> demoRide(HttpServletRequest req, @RequestBody(required = false) Map<String, Object> raw) {
+    auth.require(req, "Owner");
+    Object v = raw == null ? null : raw.get("on");
+    if (!(v instanceof Boolean)) throw HttpError.bad("CHOICE_MISSING", "Choose on or off", "Turn the demo ride on or off.");
+    demoRide.set((Boolean) v);
+    return M.of("demoRide", demoRide.isOn(), "message", (Boolean) v
+        ? "Demo ride on: the sidecar drives from the station by itself."
+        : "Demo ride off: the rider's phone moves the sidecar.");
   }
 
   private static double money(Object v, String label, String key) {
