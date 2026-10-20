@@ -1,0 +1,25 @@
+# Checks the online server from outside: health, how long it answers, and a log-in with a wrong
+# password (no real password needed). Results show as notes on the run (Actions > Server status).
+name: Server status
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: deploy
+      - name: Check
+        run: |
+          URL=$(tr -d ' \r\n' < deploy/server-url.txt)
+          for i in 1 2 3; do
+            out=$(curl -s -o /tmp/h.json -w "%{http_code} %{time_total}s" --max-time 120 "$URL/health" || echo "no answer")
+            echo "::notice title=health try $i::$out $(head -c 300 /tmp/h.json 2>/dev/null)"
+            sleep 5
+          done
+          out=$(curl -s -o /tmp/l.json -w "%{http_code} %{time_total}s" --max-time 120 -H "Content-Type: application/json" \
+            -d '{"phone":"09170000001","password":"wrong-password-check"}' "$URL/api/auth/login" || echo "no answer")
+          echo "::notice title=login (wrong password)::$out $(head -c 200 /tmp/l.json 2>/dev/null)"
