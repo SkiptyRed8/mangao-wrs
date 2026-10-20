@@ -639,6 +639,8 @@ module.exports = [
       ['Owner on the phone: Sales > Export > PDF > Create file.', 'The phone\'s Save screen opens with the file name; tap Save. "File saved" shows in the app.'],
       ['Files app > Downloads: open the PDF; repeat with Spreadsheet.', 'Both files are there and open (PDF viewer; Google Sheets or Excel).'],
       ['Create file, then on the Save screen go back without saving.', '"File not saved yet" with a "Save to phone" button; tapping it opens the Save screen again.'],
+      ['iPhone, web version in Safari: Sales > Export > PDF > Create file.', 'Safari asks to download (or tap Download in the "File ready" box); the file is in Files > Downloads and opens. The app page stays open.'],
+      ['Wait 5 minutes, then tap Download again.', 'A new file is made and downloads (no "Link expired" page).'],
       ['Turn off the internet for 10 seconds, then on.', 'The app shows a message instead of crashing; live updates come back by themselves.'],
       ['After Claude changes the app: download the new APK from the same link and install.', 'It installs over the old app (no uninstall); still logged in; the release title shows the new version number.'],
     ],

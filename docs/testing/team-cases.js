@@ -61,6 +61,7 @@ module.exports = [
       ['Sales > Daily > Export > PDF > Create file.', 'The phone\'s Save screen opens with the name Mangao-Daily-Sales-<date>.pdf. Tap Save (Downloads). The app shows "File saved".'],
       ['Open the Files app > Downloads and tap the PDF.', 'It opens: logo, "Daily Sales Report", the numbers and the orders table.'],
       ['Back in the app: Spreadsheet > Create file > Save.', 'A .xlsx file is saved in Downloads; it opens in Google Sheets or Excel.'],
+      ['iPhone (web version in Safari): Sales > Daily > Export > PDF > Create file.', 'Safari asks to download the file (if not, tap the Download button in the "File ready" box). Tap Download; open it from the Files app > Downloads.'],
       ['Open an order the Rider marked "Not delivered" (Orders > Filter > Not delivered) > Re-deliver > Confirm.', '"Back to Processing."; it goes back to the Processing tab with a new delivery time.'],
       ['More > Staff & Riders.', 'Owner, Joy Ramos (Staff) and Juan Dela Cruz (Rider), each Active.'],
       ['More > Prices & Settings.', 'Prices P30.00 / P35.00 / P150.00, Tank limit 60, Low-stock levels, Station location "98 Riverside Street, Barangay Commonwealth, Quezon City". (Look only.)'],

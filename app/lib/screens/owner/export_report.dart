@@ -101,6 +101,7 @@ class _ExportReportState extends State<ExportReport> {
       _bytes = null;
       _saved = null;
       if (kIsWeb) {
+        _madeAt = DateTime.now();
         setState(() => _busy = false);
         await _download();
       } else {
@@ -119,10 +120,19 @@ class _ExportReportState extends State<ExportReport> {
     }
   }
 
-  /// Chrome on the laptop: the browser downloads the file.
+  DateTime? _madeAt; // the download link works for 5 minutes
+
+  /// Web version (Chrome, Safari on iPhone): the file downloads in the same tab. A new window is
+  /// blocked by Safari on iPhone, but the same tab is not, and the page stays (the server sends the
+  /// file as a download).
   Future<void> _download() async {
-    final ok = await launchUrl(Uri.parse('${AppConfig.apiUrl}$_url'), mode: LaunchMode.externalApplication);
-    if (!ok && mounted) toast(context, 'Could not open the file', error: true);
+    final made = _madeAt;
+    if (made == null || DateTime.now().difference(made) > const Duration(minutes: 4)) {
+      await _create(); // link too old: make a new one (it downloads again)
+      return;
+    }
+    final ok = await launchUrl(Uri.parse('${AppConfig.apiUrl}$_url'), webOnlyWindowName: '_self');
+    if (!ok && mounted) toast(context, 'Could not download the file', error: true);
   }
 
   static const _notSaved = ApiException(0, 'DOWNLOAD', 'File not saved', 'Check the internet, then tap Create file again.');
@@ -200,14 +210,17 @@ class _ExportReportState extends State<ExportReport> {
               const Row(children: [
                 Icon(Icons.check_circle, color: Brand.blue),
                 SizedBox(width: 8),
-                Text('File saved', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                Text('File ready', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
               ]),
               const Gap(4),
               Text(_fileName!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5)),
               const Gap(2),
-              const Text('Check your Downloads folder. On a phone, share it from there.', style: TextStyle(color: Brand.muted, fontSize: 12.5)),
+              const Text(
+                'If it did not download, tap Download. iPhone: tap Download when Safari asks; the file goes to the Files app > Downloads. Computer: the Downloads folder.',
+                style: TextStyle(color: Brand.muted, fontSize: 12.5),
+              ),
               const Gap(10),
-              Btn('Download again', _create, outline: true, small: true),
+              Btn('Download', _download, small: true, icon: Icons.file_download_outlined),
             ]),
           ),
         ],
