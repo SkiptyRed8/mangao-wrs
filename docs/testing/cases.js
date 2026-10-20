@@ -639,6 +639,7 @@ module.exports = [
       ['Log in, close the app fully (swipe it away), wait a few minutes, open it again.', 'Home of the same account opens within a few seconds (still logged in); the app never stays on the logo screen.'],
       ['Long-press the logo, type the laptop address from START.bat, Save.', 'The red line goes away; "Server: http://192.168.x.x:3100" shows under the buttons.'],
       ['Long-press the logo, "Use built-in".', 'Back to the online server address.'],
+      ['Long-press the logo, save an address that does not work (e.g. http://192.168.1.250:3100), then tap Log in with the owner account.', 'The app goes back to the online server by itself and logs in (or, without internet, shows "Log in did not finish" in red after at most 75 seconds; it never spins forever).'],
       ['Log in as Customer and place an order (pin the address with GPS).', 'Android asks for location permission; the pin goes to where you are; the order is placed.'],
       ['Owner on the laptop (Chrome) or a second phone.', 'The phone order appears on the Order Board within a few seconds.'],
       ['Rider on the phone: Deliveries, Navigate, Call.', 'Google Maps opens with directions; the phone dialer opens with the number.'],
