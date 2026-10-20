@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../models/order.dart';
@@ -11,6 +10,7 @@ import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
 import '../../widgets/common.dart';
+import '../../widgets/delivery_map.dart';
 import '../../widgets/map_widgets.dart';
 import 'order_form.dart';
 
@@ -232,7 +232,8 @@ class StatusSteps extends StatelessWidget {
   }
 }
 
-/// Customer 5 / 11: live map with the rider (blue dot) and the delivery pin while Out for Delivery.
+/// Customer 5 / 11: live map while Out for Delivery: the sidecar (the rider) moving along the route
+/// to the delivery address, and the time left ("About 6 min away · 1.8 km").
 class RiderMap extends StatelessWidget {
   final Order order;
   final Map<String, dynamic>? rider;
@@ -241,41 +242,9 @@ class RiderMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final home = order.lat != null ? LatLng(order.lat!, order.lng!) : null;
-    final r = rider == null ? null : LatLng((rider!['lat'] as num).toDouble(), (rider!['lng'] as num).toDouble());
-    final center = r ?? home ?? qcStart;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (r == null)
-        const Padding(
-          padding: EdgeInsets.only(bottom: 6),
-          child: Text("Waiting for the rider's location...", style: TextStyle(color: Brand.muted, fontSize: 12.5)),
-        ),
-      SizedBox(
-        height: 210,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: FlutterMap(
-            key: ValueKey('${r?.latitude},${r?.longitude}'),
-            options: MapOptions(initialCenter: center, initialZoom: 15),
-            children: [
-              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.mangao.mangao_wrs'),
-              MarkerLayer(markers: [
-                if (home != null)
-                  Marker(point: home, width: 36, height: 36, alignment: Alignment.topCenter, child: const Icon(Icons.location_on, color: Brand.ink, size: 36)),
-                if (r != null)
-                  Marker(
-                    point: r,
-                    width: 26,
-                    height: 26,
-                    child: Container(
-                      decoration: BoxDecoration(color: Brand.blue, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
-                    ),
-                  ),
-              ]),
-              const SimpleAttributionWidget(source: Text('OpenStreetMap contributors')),
-            ],
-          ),
-        ),
-      ),
-    ]);
+    final r = rider == null || rider!['lat'] == null
+        ? null
+        : LatLng((rider!['lat'] as num).toDouble(), (rider!['lng'] as num).toDouble());
+    return DeliveryMap(home: home, rider: r);
   }
 }

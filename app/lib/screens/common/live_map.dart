@@ -9,13 +9,15 @@ import '../../services/app_state.dart';
 import '../../services/realtime.dart';
 import '../../theme/brand.dart';
 import '../../widgets/common.dart';
+import '../../widgets/delivery_map.dart';
 import '../../widgets/map_widgets.dart';
 import '../owner/admin_order_details.dart';
 import '../shell.dart';
 import '../staff/staff_todo.dart';
 
-/// Admin Orders 7 / Staff 9: Live Map. The rider marker (grey with "Last seen" when it has not moved for
-/// 5 minutes) and numbered pins for the orders on the road. Tap the rider for the rider card (Call, the
+/// Admin Orders 7 / Staff 9: Live Map. Each rider is a sidecar that glides along the streets and turns
+/// to the direction it goes, with the route to the rider's nearest stop and the minutes left (grey with
+/// "Last seen" when it has not moved for 5 minutes), and numbered pins for the orders on the road. Tap the rider for the rider card (Call, the
 /// orders on board); tap a pin for the order. Staff see and call only.
 class LiveMapScreen extends StatefulWidget {
   final bool pushed;
@@ -33,6 +35,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   Timer? _poll;
   StreamSubscription<RtEvent>? _live;
   bool _centered = false;
+  final Map<Object?, double> _heading = {}; // rider id -> direction the sidecar faces
+  final Map<Object?, RouteTracker> _routes = {}; // rider id -> route to the nearest stop
 
   @override
   void initState() {
@@ -45,12 +49,18 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         setState(() {
           for (final r in _data!['riders'] as List) {
             if ((r as Map<String, dynamic>)['id'] == e.data['riderId']) {
+              final before = _pos(r);
               r['lat'] = e.data['lat'];
               r['lng'] = e.data['lng'];
               r['minutesAgo'] = 0;
+              final now = _pos(r);
+              if (before != null && now != null && metersBetween(before, now) > 4) {
+                _heading[r['id']] = nextHeading(_heading[r['id']] ?? 0, bearingBetween(before, now));
+              }
             }
           }
         });
+        _updateRoutes();
       } else {
         _load();
       }
@@ -61,7 +71,54 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   void dispose() {
     _poll?.cancel();
     _live?.cancel();
+    for (final t in _routes.values) {
+      t.dispose();
+    }
     super.dispose();
+  }
+
+  static LatLng? _pos(Map<String, dynamic> m) =>
+      m['lat'] == null ? null : LatLng((m['lat'] as num).toDouble(), (m['lng'] as num).toDouble());
+
+  /// The rider's nearest order on board (the next stop).
+  Map<String, dynamic>? _nextStop(Map<String, dynamic> rider) {
+    final at = _pos(rider);
+    if (at == null || _data == null) return null;
+    Map<String, dynamic>? best;
+    var bestM = double.infinity;
+    for (final o in (_data!['orders'] as List).cast<Map<String, dynamic>>()) {
+      final p = _pos(o);
+      if (o['riderId'] != rider['id'] || p == null) continue;
+      final m = metersBetween(at, p);
+      if (m < bestM) {
+        bestM = m;
+        best = o;
+      }
+    }
+    return best;
+  }
+
+  /// Asks for (or keeps) each rider's route to the next stop.
+  void _updateRoutes() {
+    final d = _data;
+    if (d == null) return;
+    for (final r in (d['riders'] as List).cast<Map<String, dynamic>>()) {
+      final at = _pos(r);
+      final stop = _nextStop(r);
+      if (at == null || stop == null) continue;
+      final t = _routes.putIfAbsent(r['id'], () => RouteTracker(() {
+            if (mounted) setState(() {});
+          }));
+      t.update(at, _pos(stop)!);
+      _heading.putIfAbsent(r['id'], () => bearingBetween(at, _pos(stop)!));
+    }
+  }
+
+  /// Route and time left for one rider (null when there is no stop or no location).
+  RouteResult? _routeOf(Map<String, dynamic> r) {
+    final at = _pos(r);
+    if (at == null || _nextStop(r) == null) return null;
+    return _routes[r['id']]?.view(at);
   }
 
   Future<void> _load() async {
@@ -72,6 +129,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         _data = r;
         _error = null;
       });
+      _updateRoutes();
       if (!_centered) {
         _centered = true;
         final first = _points(r).firstOrNullPoint;
@@ -112,11 +170,26 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   void _riderCard(Map<String, dynamic> r) {
     final orders = [for (final o in _data!['orders'] as List) o as Map<String, dynamic>].where((o) => o['riderId'] == r['id']).toList();
     final ago = r['minutesAgo'] == null ? 'No location yet' : (r['minutesAgo'] == 0 ? 'Updated just now' : 'Updated ${r['minutesAgo']} min ago');
+    final stop = _nextStop(r);
+    final route = _routeOf(r);
     sheet<void>(
       context,
       r['name'] as String,
       sub: '${orders.length} ${orders.length == 1 ? 'order' : 'orders'} on board · $ago',
       (c, set) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (stop != null) ...[
+          Row(children: [
+            const Icon(Icons.two_wheeler, color: Brand.blue, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Next stop: pin ${stop['n']}, ${stop['name']}${route == null ? '' : '\n${etaText(route)}'}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ]),
+          const Gap(10),
+        ],
         Btn('Call', () => callNumber(context, (r['phone'] ?? '') as String), outline: true, icon: Icons.call),
         const Gap(12),
         for (final o in orders)
@@ -129,6 +202,24 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             },
           ),
       ]),
+    );
+  }
+
+  /// One rider on the map: the sidecar with "#2 · 6 min", or grey with "Last seen 7 min ago".
+  Widget _sidecar(Map<String, dynamic> r) {
+    final stale = ((r['minutesAgo'] ?? 99) as num) > 5;
+    final stop = _nextStop(r);
+    final route = _routeOf(r);
+    final label = stale
+        ? 'Last seen ${r['minutesAgo']} min ago'
+        : (stop == null ? (r['name'] as String).split(' ').first : 'To ${stop['n']} · ${route == null ? '...' : etaShort(route)}');
+    return SidecarLayer(
+      key: ValueKey('rider-${r['id']}'),
+      point: _pos(r)!,
+      heading: _heading[r['id']] ?? 0,
+      faded: stale,
+      label: label,
+      onTap: () => _riderCard(r),
     );
   }
 
@@ -154,6 +245,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           ),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.mangao.mangao_wrs'),
+            for (final r in riders.cast<Map<String, dynamic>>())
+              if (((r['minutesAgo'] ?? 99) as num) <= 5) routeLayer(_routeOf(r)),
             MarkerLayer(markers: [
               if (station != null && station['lat'] != null)
                 Marker(
@@ -185,32 +278,9 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                       ),
                     ),
                   ),
-              for (final r in riders.cast<Map<String, dynamic>>())
-                if (r['lat'] != null)
-                  Marker(
-                    point: LatLng((r['lat'] as num).toDouble(), (r['lng'] as num).toDouble()),
-                    width: 120,
-                    height: 64,
-                    child: GestureDetector(
-                      onTap: () => _riderCard(r),
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        CircleAvatar(
-                          radius: 17,
-                          backgroundColor: ((r['minutesAgo'] ?? 99) as num) > 5 ? Brand.muted : Brand.blue,
-                          child: Text((r['name'] as String).substring(0, 1),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                        ),
-                        if (((r['minutesAgo'] ?? 99) as num) > 5)
-                          Container(
-                            margin: const EdgeInsets.only(top: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Brand.muted)),
-                            child: Text('Last seen ${r['minutesAgo']} min ago', style: const TextStyle(fontSize: 10)),
-                          ),
-                      ]),
-                    ),
-                  ),
             ]),
+            for (final r in riders.cast<Map<String, dynamic>>())
+              if (r['lat'] != null) _sidecar(r),
             const SimpleAttributionWidget(source: Text('OpenStreetMap contributors')),
           ],
         ),
