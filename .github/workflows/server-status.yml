@@ -15,6 +15,11 @@ jobs:
       - name: Check
         run: |
           URL=$(tr -d ' \r\n' < deploy/server-url.txt)
+          HOST=$(echo "$URL" | sed -E 's#https?://([^/]+).*#\1#')
+          echo "::notice title=DNS A::$(dig +short A $HOST | tr '\n' ' ')"
+          echo "::notice title=DNS AAAA (IPv6)::$(dig +short AAAA $HOST | tr '\n' ' ')"
+          echo "::notice title=certificate::$(echo | openssl s_client -servername $HOST -connect $HOST:443 2>/dev/null | openssl x509 -noout -issuer -dates 2>/dev/null | tr '\n' ' ')"
+          echo "::notice title=certificate chain::$(echo | openssl s_client -showcerts -servername $HOST -connect $HOST:443 2>/dev/null | grep -E '^ *[0-9] s:|i:' | tr '\n' ' ' | head -c 900)"
           for i in 1 2 3; do
             out=$(curl -s -o /tmp/h.json -w "%{http_code} %{time_total}s" --max-time 120 "$URL/health" || echo "no answer")
             echo "::notice title=health try $i::$out $(head -c 300 /tmp/h.json 2>/dev/null)"
