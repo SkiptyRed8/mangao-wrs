@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config.dart';
 import '../../services/app_state.dart';
 import '../../theme/brand.dart';
+import '../../utils/net_test.dart';
 import '../../widgets/common.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
@@ -114,6 +115,22 @@ class _ServerDialog extends StatefulWidget {
 class _ServerDialogState extends State<_ServerDialog> {
   late final _text = TextEditingController(text: AppConfig.apiUrl);
   String? _error;
+  String? _test;
+  bool _testing = false;
+
+  Future<void> _runTest() async {
+    setState(() {
+      _testing = true;
+      _test = null;
+    });
+    final r = await connectionTest(AppConfig.clean(_text.text) ?? AppConfig.apiUrl);
+    if (mounted) {
+      setState(() {
+        _testing = false;
+        _test = r;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -140,7 +157,7 @@ class _ServerDialogState extends State<_ServerDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Server address'),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Built-in: ${AppConfig.defaultUrl}', style: const TextStyle(fontSize: 12.5, color: Brand.muted)),
         const SizedBox(height: 10),
         TextField(
@@ -157,8 +174,13 @@ class _ServerDialogState extends State<_ServerDialog> {
         ),
         const SizedBox(height: 8),
         const Text('For the project team only (testing).', style: TextStyle(fontSize: 12, color: Brand.muted)),
-      ]),
+        if (_test != null) ...[
+          const SizedBox(height: 8),
+          SelectableText(_test!, style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace')),
+        ],
+      ])),
       actions: [
+        TextButton(onPressed: _testing ? null : _runTest, child: Text(_testing ? 'Testing...' : 'Test connection')),
         if (AppConfig.custom) TextButton(onPressed: _reset, child: const Text('Use built-in')),
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         TextButton(onPressed: _save, child: const Text('Save')),
