@@ -70,7 +70,7 @@ const children = [
   para('4. If Play Protect warns "unknown developer": tap "More details" > "Install anyway". (It warns only because the app is not from the Play Store.)'),
   para('5. Open "Mangao WRS". The first time it can take up to 1 minute while the online server wakes up.'),
   para('You need internet on the phone (Wi-Fi or mobile data). Allow location and camera when the app asks.', { color: MUTED }),
-  para('For safety the app logs you out after 2 minutes without touching it (or when you leave it for 2 minutes). If that happens during a test, just log in again and continue.', { color: MUTED }),
+  para('Testing indoors? The owner can turn on More > Prices & Settings > Demo ride: the sidecar then drives from the station to the customer by itself. Turn it off afterwards.', { color: MUTED }),
 
   h1('2. Accounts to log in with'),
   table(
