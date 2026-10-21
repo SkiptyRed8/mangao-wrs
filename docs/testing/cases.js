@@ -699,6 +699,9 @@ module.exports = [
       ['Add an order of another customer to the same trip.', 'Ana\'s order: "Your rider is also delivering to 1 other customer on this trip."'],
       ['Rider: Live Map tab.', 'The rider sees the station, their own numbered stops, the sidecar and the route; tapping a pin shows the order without opening details; no Call button for themselves.'],
       ['Customer Home with an order on the way.', 'The card title reads "Your current order" (no technical names like "Active Order Card").'],
+      ['Live Map with one or more orders out (app 1.0.27 or newer).', 'A white box at the top: "1 delivery running" and each order "1  <name> · Out for delivery · out since <date>, <time>".'],
+      ['Leave an order Out for Delivery and do not move the rider for 30 minutes.', 'The top box adds "<rider> has not moved for 30 min. If these orders are done, mark them Delivered or Not delivered."'],
+      ['Mark every order on the road Delivered or Not delivered.', 'The map shows "No deliveries running" in the middle (with a truck icon); no sidecar.'],
     ],
   },
 ];

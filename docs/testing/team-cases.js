@@ -125,7 +125,7 @@ module.exports = [
       ['Rider (or the Demo ride) comes within about 300 m of the customer.', 'Customer: "Arriving - please prepare ₱70.00" above the map, an alert "Your water is arriving", and the status step changes by itself from Out for Delivery to Arriving. Owner: tag "Arriving", map label "Arriving at 1". Rider: tag "Arriving" on the card.'],
       ['Rider reaches the customer (within about 50 m, or where the road ends near the pin).', 'Customer: "Your rider has arrived. Please prepare ₱70.00", an alert "Your rider has arrived", and the step "Rider has arrived". Owner: tag "Arrived", map label "Arrived at 1". It does not stay on Arriving.'],
       ['Rider: open the Live Map tab.', 'The rider sees their own trip: station, numbered stops, sidecar and route.'],
-      ['Rider: Delivered > Paid.', 'Customer: "Delivered" with a banner; the map is gone. Owner: Live Map shows "No deliveries running"; Home Delivered tile and Sales go up; Sales > Daily lists the order.'],
+      ['Rider: Delivered > Paid.', 'Customer: "Delivered" with a banner; the map is gone. Owner: Live Map shows "No deliveries running" (while orders are out, the top of the map says "1 delivery running" with the time it went out); Home Delivered tile and Sales go up; Sales > Daily lists the order.'],
       ['Two orders out together: Rider delivers the first one.', 'The sidecar stays on the map and goes on to the second house; that customer gets "arriving" and "has arrived" the same way. After the last one: "No deliveries running".'],
       ['Customer: turn off Wi-Fi/data for 10 seconds, then on again. Owner: accept another order meanwhile.', 'The app does not crash; after the internet is back the customer screen catches up by itself (or after pulling down).'],
     ],
