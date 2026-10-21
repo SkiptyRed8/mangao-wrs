@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor C as Customer
+  participant O as My Orders
+  participant D as Order Details
+  participant F as Order Form
+  participant A as My Account
+  participant S as Server
+  C->>O: 1: Tap My Orders (Active, History)
+  O->>S: 2: GET /api/orders
+  C->>O: 3: Tap an order
+  O->>D: 4: Open Order Details
+  D->>S: 5: GET /api/orders/{id}
+  S-->>D: 6: 7 steps, estimated delivery, rider on the map
+  S-->>D: 7: Live updates: Out for Delivery, Arriving, Arrived, Delivered
+  opt Waiting to be accepted
+    C->>D: 8: Cancel order, Confirm
+    D->>S: 9: POST /api/orders/{id}/cancel
+  end
+  C->>D: 10: Call station
+  C->>O: 11: History, tap Reorder
+  O->>F: 12: Order Form with the same gallons and address
+  C->>A: 13: Tap My Account
+  A-->>C: 14: Profile, saved addresses (add, edit, delete), change password, log out
+  opt Guest
+    C->>A: 15: Create account or Exit guest mode
+  end

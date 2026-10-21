@@ -1,0 +1,25 @@
+sequenceDiagram
+  actor O as Owner
+  participant M as More
+  participant C as Customers
+  participant T as Staff and Riders
+  participant P as Prices and Settings
+  participant A as My Account
+  participant S as Server
+  O->>M: 1: Open More
+  O->>M: 2: Tap Customers
+  M->>C: 3: Customer list, search, profile (orders, addresses, unpaid, borrowed)
+  O->>M: 4: Tap Staff and Riders
+  M->>T: 5: Accounts list
+  O->>T: 6: Add account, edit, deactivate or reset password
+  T->>S: 7: POST or PUT /api/staff
+  O->>M: 8: Tap Prices and Settings
+  M->>P: 9: Prices, tank limit, low-stock levels, station location, demo ride
+  O->>P: 10: Edit and Save
+  P->>S: 11: PUT /api/settings/...
+  O->>M: 12: Tap Notifications
+  M-->>O: 13: Alerts and Preferences (same as the bell)
+  O->>M: 14: Tap My Account
+  M->>A: 15: Profile, change password, log out
+  O->>A: 16: Log out
+  A-->>O: 17: Back to Welcome

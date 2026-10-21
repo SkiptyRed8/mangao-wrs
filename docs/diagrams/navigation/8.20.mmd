@@ -1,0 +1,33 @@
+sequenceDiagram
+  actor O as Owner
+  participant H as Home
+  participant W as Log Walk-in
+  participant D as Log Delivery Order
+  participant B as Orders
+  participant A as Sales
+  participant S as Server
+  O->>H: 1: Open Home
+  H->>S: 2: GET /api/admin/home
+  S-->>H: 3: Tank counter, Needs Your Action, Today's Summary, stock alerts
+  alt Log Walk-in
+    O->>H: 4: Tap Log Walk-in
+    H->>W: 5: Open Log Walk-in
+    O->>W: 6: Quantity, Refill or Package, Paid or Unpaid, Save
+    W->>S: 7: POST /api/work/walk-in
+    S-->>H: 8: Saved, tank counter and stock updated
+  else Log Delivery
+    O->>H: 9: Tap Log Delivery
+    H->>D: 10: Open Log Delivery Order
+    O->>D: 11: Name, phone, address, gallons, received by, payment, Save
+    D->>S: 12: POST /api/work/delivery
+    S-->>B: 13: Order saved in Processing
+  else Needs Your Action or a summary tile
+    O->>H: 14: Tap New orders, Ready to send out or a tile
+    H->>B: 15: Open the Order Board at that tab
+    O->>H: 16: Tap Sales, Walk-in or Unpaid tile
+    H->>A: 17: Open Sales
+  else Tank alert
+    O->>H: 18: Tap Water tank refilled
+    H->>S: 19: POST /api/work/tank/reset
+    S-->>H: 20: Counter back to 0
+  end

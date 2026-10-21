@@ -1,0 +1,41 @@
+sequenceDiagram
+  actor U as User
+  participant W as Welcome
+  participant L as Log in
+  participant P as Forgot password
+  participant G as Sign up
+  participant S as Server
+  participant R as Role Home
+  U->>W: 1: Open the app
+  W->>S: 2: GET /health (connect)
+  S-->>W: 3: Server ready
+  alt Log in
+    U->>W: 4: Tap Log in
+    W->>L: 5: Open Log in
+    U->>L: 6: Phone number and password, tap Log in
+    L->>S: 7: POST /api/auth/login
+    alt Details correct
+      S-->>L: 8: Token and role
+      L->>R: 9: Open the tabs of the role (Owner, Staff, Rider, Customer)
+    else Details wrong
+      S-->>L: 10: 400 Details wrong
+      L-->>U: 11: Red message, fields marked
+    end
+  else Forgot password
+    U->>L: 12: Tap Forgot password
+    L->>P: 13: Open Forgot password
+    U->>P: 14: Email, then 6-digit code, then new password
+    P->>S: 15: POST /api/auth/forgot, /forgot/verify, /forgot/reset
+    S-->>P: 16: Password changed
+    P->>L: 17: Back to Log in
+  else Sign up (customers)
+    U->>W: 18: Tap Sign up
+    W->>G: 19: Open Sign up
+    U->>G: 20: Name, phone, email, password, agree to terms
+    G->>S: 21: POST /api/auth/signup
+    S-->>G: 22: Account created and token
+    G->>R: 23: Open Customer Home
+  else Continue as guest
+    U->>W: 24: Tap Continue as guest
+    W->>R: 25: Open Customer Home (guest code saved on the phone)
+  end

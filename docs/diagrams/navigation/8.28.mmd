@@ -1,0 +1,14 @@
+sequenceDiagram
+  actor R as Rider
+  participant M as Live Map
+  participant D as Done Today
+  participant A as My Account
+  participant S as Server
+  R->>M: 1: Tap Live Map
+  M->>S: 2: GET /api/map (own trip only)
+  S-->>M: 3: Station, own stops, sidecar, route
+  R->>D: 4: Tap Done Today
+  D->>S: 5: GET /api/rider/done-today
+  S-->>D: 6: Delivered today, paid and unpaid totals, orders list
+  R->>A: 7: Tap My Account
+  A-->>R: 8: Profile, change password, log out

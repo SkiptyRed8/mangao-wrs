@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor F as Staff
+  participant M as Live Map
+  participant D as Done Today
+  participant A as My Account
+  participant S as Server
+  F->>M: 1: Tap Live Map
+  M->>S: 2: GET /api/map
+  S-->>M: 3: Station, rider, numbered orders, deliveries running
+  S-->>M: 4: Live rider location (WebSocket)
+  F->>M: 5: Tap the rider or a pin
+  M-->>F: 6: Rider card (Call) or the order
+  F->>D: 7: Tap Done Today
+  D->>S: 8: GET /api/work/done-today
+  S-->>D: 9: Gallons processed, orders logged and sent out
+  F->>A: 10: Tap My Account
+  A-->>F: 11: Profile, change password, log out

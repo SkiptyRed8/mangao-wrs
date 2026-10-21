@@ -1,0 +1,22 @@
+sequenceDiagram
+  actor O as Owner
+  participant D as Daily Sales Report
+  participant W as Weekly Sales Report
+  participant U as Unpaid Accounts
+  participant E as Export Report
+  participant S as Server
+  O->>D: 1: Open Sales
+  D->>S: 2: GET /api/sales/daily?date=
+  S-->>D: 3: Money earned, unpaid, gallons, orders list
+  O->>D: 4: Tap the date arrows or Weekly
+  D->>W: 5: Open Weekly (money per day, compared with last week)
+  W->>S: 6: GET /api/sales/weekly
+  O->>D: 7: Tap Unpaid
+  D->>U: 8: Open Unpaid Accounts (per customer, search)
+  O->>U: 9: Open a customer, Mark paid
+  U->>S: 10: POST /api/admin/orders/{id}/paid
+  S-->>U: 11: Total owed goes down
+  O->>D: 12: Tap Export
+  D->>E: 13: Choose report (daily, weekly, unpaid) and PDF or spreadsheet
+  E->>S: 14: POST /api/export, then GET /api/export/file
+  S-->>E: 15: File saved on the phone or downloaded

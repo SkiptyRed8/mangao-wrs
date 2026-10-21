@@ -1,0 +1,33 @@
+sequenceDiagram
+  actor O as Owner
+  participant B as Order Board
+  participant D as Order Details
+  participant P as Pop-up
+  participant L as Live Map
+  participant S as Server
+  O->>B: 1: Open the Orders tab
+  B->>S: 2: GET /api/admin/orders?view=new
+  O->>B: 3: Tap an order
+  B->>D: 4: Open Order Details (timeline, address, phone)
+  alt New order
+    O->>D: 5: Tap Accept
+    D->>P: 6: Choose the rider
+    P->>S: 7: POST /api/admin/orders/accept
+    S-->>D: 8: Processing, customer notified
+  else Decline
+    O->>D: 9: Tap Decline
+    D->>P: 10: Choose or type the reason
+    P->>S: 11: POST /api/admin/orders/{id}/decline
+    S-->>B: 12: Declined, customer notified
+  else Processing order
+    O->>D: 13: Mark Out for Delivery
+    D->>P: 14: Confirm (rider, gallons)
+    P->>S: 15: POST /api/work/out
+    S-->>D: 16: Out for Delivery, location sharing on
+  else Out for Delivery or Not delivered
+    O->>D: 17: Change rider, Mark paid, Re-deliver or Cancel
+    D->>S: 18: POST /api/admin/orders/{id}/...
+    S-->>D: 19: Updated, timeline step added
+  end
+  O->>B: 20: Tap Live Map
+  B->>L: 21: Open Live Map (sidecar, route, deliveries running)

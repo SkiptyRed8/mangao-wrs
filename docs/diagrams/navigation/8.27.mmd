@@ -1,0 +1,29 @@
+sequenceDiagram
+  actor R as Rider
+  participant D as Deliveries
+  participant P as Pop-up
+  participant X as Report damaged gallon
+  participant S as Server
+  participant G as Phone (GPS, dialer, maps)
+  R->>D: 1: Log in as Rider
+  D->>S: 2: GET /api/rider/deliveries
+  S-->>D: 3: Orders out for delivery
+  D->>G: 4: Read the location every 15 s
+  D->>S: 5: POST /api/rider/location (Location Sharing on)
+  R->>D: 6: Tap Call or Directions
+  D->>G: 7: Open the dialer or Google Maps
+  alt Delivered
+    R->>D: 8: Tap Delivered
+    D->>P: 9: Paid or Unpaid
+    P->>S: 10: POST /api/rider/orders/{id}/delivered
+    S-->>D: 11: Order removed from the list
+  else Not delivered
+    R->>D: 12: Tap Not delivered
+    D->>P: 13: Note, Confirm
+    P->>S: 14: POST /api/rider/orders/{id}/not-delivered
+  else Damaged gallon
+    R->>D: 15: Tap Report damaged gallon
+    D->>X: 16: Photo and note, Send
+    X->>S: 17: POST /api/damage
+  end
+  S-->>D: 18: Location Sharing off after the last order

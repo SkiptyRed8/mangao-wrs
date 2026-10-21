@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor O as Owner
+  participant T as Tab bar and top bar
+  participant H as Home
+  participant B as Orders
+  participant I as Inventory
+  participant A as Sales
+  participant M as More
+  participant N as Notifications
+  O->>T: 1: Log in as Owner
+  T->>H: 2: Open Home (first tab)
+  O->>T: 3: Tap Orders
+  T->>B: 4: Open Order Board
+  O->>T: 5: Tap Inventory
+  T->>I: 6: Open Stock Overview
+  O->>T: 7: Tap Sales
+  T->>A: 8: Open Daily Sales Report
+  O->>T: 9: Tap More
+  T->>M: 10: Open More menu
+  O->>T: 11: Tap the bell
+  T->>N: 12: Open Notifications (alerts and preferences)
+  O->>T: 13: Tap Admin, choose Staff view or Delivery view
+  T-->>O: 14: Staff tabs or Rider tabs, same account

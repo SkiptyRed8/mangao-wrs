@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor F as Staff
+  participant T as To Do
+  participant W as Log Walk-in or Delivery
+  participant L as Borrowed Gallons
+  participant D as Order Details
+  participant S as Server
+  F->>T: 1: Log in as Staff
+  T->>S: 2: GET /api/work/todo
+  S-->>T: 3: Tank counter, Processing orders
+  alt Log Walk-in or Log Delivery
+    F->>T: 4: Tap Log Walk-in or Log Delivery
+    T->>W: 5: Open the form
+    F->>W: 6: Fill in, Save
+    W->>S: 7: POST /api/work/walk-in or /api/work/delivery
+  else Borrowed Gallons
+    F->>T: 8: Tap Borrowed Gallons
+    T->>L: 9: Lend or mark returned
+  else Processing orders
+    F->>T: 10: Tap an order
+    T->>D: 11: Order Details (view only)
+    F->>T: 12: Select orders, Mark selected Out for Delivery
+    T->>S: 13: POST /api/work/out
+    S-->>T: 14: Sent out, tank counter up, seals down
+  end
+  S-->>T: 15: Tank alert when the counter reaches the limit

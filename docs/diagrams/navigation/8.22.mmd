@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor O as Owner
+  participant I as Stock Overview
+  participant G as New Gallons or Seals
+  participant H as Movement History
+  participant L as Borrowed Gallons
+  participant S as Server
+  O->>I: 1: Open Inventory
+  I->>S: 2: GET /api/inventory
+  S-->>I: 3: Stock, low-stock warnings
+  O->>I: 4: Tap New Gallons or Seals
+  I->>G: 5: Open the item (current stock, entries)
+  alt Add stock
+    O->>G: 6: Add stock, quantity, note
+    G->>S: 7: POST /api/inventory/{item}/add
+  else Damaged or lost
+    O->>G: 8: Damaged or Lost, quantity, reason
+    G->>S: 9: POST /api/inventory/{item}/remove
+  end
+  S-->>G: 10: New stock, entry added
+  O->>I: 11: Tap Movement History
+  I->>H: 12: Open Movement History, Filter by item, date or reason
+  O->>I: 13: Tap Borrowed Gallons
+  I->>L: 14: Open Borrowed Gallons (Borrowed, Returned)
+  O->>L: 15: Lend gallon or Mark returned
+  L->>S: 16: POST /api/loans or /api/loans/{id}/return

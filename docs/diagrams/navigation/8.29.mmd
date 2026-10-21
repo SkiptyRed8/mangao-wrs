@@ -1,0 +1,30 @@
+sequenceDiagram
+  actor C as Customer
+  participant H as Home
+  participant F as Order Form
+  participant A as Delivery Address
+  participant P as Confirm pop-up
+  participant S as Server
+  participant D as Order Details
+  C->>H: 1: Open Home
+  H->>S: 2: GET /api/orders/home
+  S-->>H: 3: Your current order, price list
+  C->>H: 4: Tap Order Now
+  H->>F: 5: Open Order Form
+  Note over F: First saved address filled in
+  C->>F: 6: Type, gallons, delivery date
+  opt Change the address
+    C->>F: 7: Tap Delivery address
+    F->>A: 8: Saved addresses, Pin on map (search a place) or Type address
+    A-->>F: 9: Use this address
+  end
+  C->>F: 10: Tap Place order
+  F->>P: 11: Confirm order (total, address, date, cash on delivery)
+  C->>P: 12: Confirm
+  P->>S: 13: POST /api/orders
+  alt Details valid
+    S-->>P: 14: 201 Thank you for your order
+    P->>D: 15: Open Order Details (Waiting for order to be accepted)
+  else Details not valid
+    S-->>F: 16: 400 red message, field marked
+  end
