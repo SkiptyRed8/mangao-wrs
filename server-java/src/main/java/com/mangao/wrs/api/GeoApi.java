@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Map helpers for the address pin: the Quezon City barangay list, "Pinned: near ..." text for a pin,
- * and street / place search. Pin text and search use OpenStreetMap Nominatim (free) from the server,
+ * and street / place search. Pin text uses OpenStreetMap Nominatim, search uses Photon (then Nominatim), both free, from the server,
  * with a short cache; if it cannot be reached, the app still works with the pin alone.
  */
 @RestController
@@ -105,19 +105,80 @@ public class GeoApi {
     return M.with(f, "label", label.isEmpty() ? "the map pin" : label);
   }
 
-  /** GET /api/geo/search?q= -> { results: [{ label, lat, lng }] } (Quezon City only) */
+  private static final String PHOTON = "https://photon.komoot.io/api/";
+
+  /** GET request for a JSON answer (null when the service does not answer), with the short cache. */
+  private JsonNode getJson(String url) {
+    JsonNode c = cache.get(url);
+    if (c != null) return c;
+    try {
+      HttpResponse<String> res = http.send(HttpRequest.newBuilder(URI.create(url))
+          .header("User-Agent", "MangaoWRS/1.0 (school project, Quezon City)")
+          .header("Accept-Language", "en")
+          .timeout(Duration.ofSeconds(6))
+          .GET().build(), HttpResponse.BodyHandlers.ofString());
+      if (res.statusCode() != 200) return null;
+      JsonNode d = json.readTree(res.body());
+      if (cache.size() > 500) cache.clear();
+      cache.put(url, d);
+      return d;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static String txt(JsonNode p, String k) {
+    return p.hasNonNull(k) ? p.get(k).asText().strip() : "";
+  }
+
+  /**
+   * GET /api/geo/search?q= -> { results: [{ label, sub, lat, lng }] } (Quezon City area only)
+   * Photon (OpenStreetMap search made for typing: places, malls, schools, streets), nearest to the
+   * station first; if it does not answer or finds nothing, OpenStreetMap Nominatim.
+   */
   @GetMapping("/search")
   public Map<String, Object> search(@RequestParam(required = false) String q) {
     String text = Body.textOf(q, 100);
     if (text.length() < 3) return M.of("results", List.of());
-    String key = "/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q="
-        + URLEncoder.encode(text, StandardCharsets.UTF_8).replace("+", "%20");
-    JsonNode d = nominatim(key);
+    String enc = URLEncoder.encode(text, StandardCharsets.UTF_8).replace("+", "%20");
     List<Map<String, Object>> out = new ArrayList<>();
-    for (JsonNode r : d) {
-      String[] parts = r.path("display_name").asText().split(", ");
-      out.add(M.of("label", String.join(", ", Arrays.copyOfRange(parts, 0, Math.min(3, parts.length))),
-          "lat", V.num(r.path("lat").asText()), "lng", V.num(r.path("lon").asText())));
+    java.util.Set<String> seen = new java.util.HashSet<>();
+    JsonNode ph = getJson(PHOTON + "?limit=8&lang=en&lat=14.6928&lon=121.0872&bbox=120.98,14.58,121.14,14.78&q=" + enc);
+    if (ph != null) {
+      for (JsonNode f : ph.path("features")) {
+        JsonNode p = f.path("properties");
+        JsonNode c = f.path("geometry").path("coordinates");
+        if (c.size() < 2) continue;
+        double lng = c.get(0).asDouble(), lat = c.get(1).asDouble();
+        if (!Addresses.inArea(lat, lng)) continue;
+        String name = txt(p, "name");
+        String street = String.join(" ", Arrays.stream(new String[] {txt(p, "housenumber"), txt(p, "street")}).filter(s -> !s.isEmpty()).toList());
+        String area = !txt(p, "locality").isEmpty() ? txt(p, "locality") : txt(p, "district");
+        String label = name.isEmpty() ? street : name;
+        if (label.isEmpty()) continue;
+        List<String> sub = new ArrayList<>();
+        if (!street.isEmpty() && !street.equals(label)) sub.add(street);
+        if (!area.isEmpty() && !area.equals(label)) sub.add(area);
+        sub.add(txt(p, "city").isEmpty() ? "Quezon City area" : txt(p, "city"));
+        String s = String.join(", ", sub);
+        if (!seen.add(label + "|" + s)) continue;
+        out.add(M.of("label", label, "sub", s, "lat", lat, "lng", lng));
+        if (out.size() >= 6) break;
+      }
+    }
+    if (out.isEmpty()) {
+      JsonNode d;
+      try {
+        d = nominatim("/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=" + enc);
+      } catch (HttpError e) {
+        if (ph == null) throw e;
+        d = json.createArrayNode();
+      }
+      for (JsonNode r : d) {
+        String[] parts = r.path("display_name").asText().split(", ");
+        out.add(M.of("label", parts[0], "sub", String.join(", ", Arrays.copyOfRange(parts, Math.min(1, parts.length), Math.min(3, parts.length))),
+            "lat", V.num(r.path("lat").asText()), "lng", V.num(r.path("lon").asText())));
+      }
     }
     return M.of("results", out);
   }

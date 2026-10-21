@@ -46,6 +46,9 @@ class _AddressScreenState extends State<AddressScreen> {
   Timer? _debounce;
   List<Map<String, dynamic>> _results = [];
   bool _searching = false;
+  Timer? _typing;
+  String _searched = ''; // the words of the last search (for "No place found")
+  String? _searchError;
   bool _holdScroll = false;
 
   ApiException? _error;
@@ -81,6 +84,7 @@ class _AddressScreenState extends State<AddressScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _typing?.cancel();
     for (final c in [_name, _search, _house, _blockLot, _street, _landmark]) {
       c.dispose();
     }
@@ -114,18 +118,40 @@ class _AddressScreenState extends State<AddressScreen> {
     }
   }
 
+  /// Places while typing (after a short pause) and on the search key / arrow.
+  void _typed(String _) {
+    _typing?.cancel();
+    if (_search.text.trim().length < 3) {
+      setState(() {
+        _results = [];
+        _searched = '';
+        _searchError = null;
+      });
+      return;
+    }
+    _typing = Timer(const Duration(milliseconds: 500), _find);
+  }
+
   Future<void> _find() async {
+    _typing?.cancel();
     final q = _search.text.trim();
-    if (q.length < 3) return;
-    setState(() => _searching = true);
+    if (q.length < 3) {
+      setState(() => _searchError = 'Type at least 3 letters.');
+      return;
+    }
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
     try {
       final r = await app.api.get('/api/geo/search?q=${Uri.encodeQueryComponent(q)}');
-      if (!mounted) return;
-      final list = [for (final x in r['results'] as List) x as Map<String, dynamic>];
-      setState(() => _results = list);
-      if (list.isEmpty) toast(context, 'No place found in Quezon City. Move the map instead.');
+      if (!mounted || _search.text.trim() != q) return;
+      setState(() {
+        _results = [for (final x in r['results'] as List) x as Map<String, dynamic>];
+        _searched = q;
+      });
     } on ApiException catch (e) {
-      if (mounted) toast(context, e.message, error: true);
+      if (mounted) setState(() => _searchError = '${e.title}. ${e.message}');
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -135,7 +161,11 @@ class _AddressScreenState extends State<AddressScreen> {
     final p = LatLng((r['lat'] as num).toDouble(), (r['lng'] as num).toDouble());
     _map.move(p, 18);
     _onMoved(p);
-    setState(() => _results = []);
+    setState(() {
+      _results = [];
+      _searched = '';
+      _search.text = r['label'] as String;
+    });
     FocusScope.of(context).unfocus();
   }
 
@@ -292,9 +322,10 @@ class _AddressScreenState extends State<AddressScreen> {
       TextField(
         controller: _search,
         textInputAction: TextInputAction.search,
+        onChanged: _typed,
         onSubmitted: (_) => _find(),
         decoration: InputDecoration(
-          hintText: 'Search a street or place',
+          hintText: 'Search a street, place or landmark',
           prefixIcon: const Icon(Icons.search, color: Brand.muted),
           suffixIcon: _searching
               ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)))
@@ -310,11 +341,17 @@ class _AddressScreenState extends State<AddressScreen> {
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.place_outlined, color: Brand.blue),
-                title: Text(r['label'] as String),
+                title: Text(r['label'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: (r['sub'] ?? '') == '' ? null : Text(r['sub'] as String),
                 onTap: () => _pick(r),
               ),
           ]),
         ),
+      if (_searchError != null) ...[const Gap(6), MsgBanner('Search did not work', sub: _searchError)],
+      if (_searchError == null && !_searching && _results.isEmpty && _searched.isNotEmpty && _searched == _search.text.trim()) ...[
+        const Gap(6),
+        const Note('No place found with those words. Try a street, barangay or landmark, or move the map to your house.'),
+      ],
       const Gap(8),
       // While a finger or the mouse is on the map, the page does not scroll, so the map can be moved.
       Listener(

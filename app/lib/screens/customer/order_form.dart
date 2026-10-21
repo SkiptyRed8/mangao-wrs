@@ -76,6 +76,8 @@ class _OrderFormState extends State<OrderForm> {
         _prices = home['prices'] as Map<String, dynamic>;
         _unpaid = (home['unpaid'] as num).toDouble();
         _saved = saved;
+        // A new order starts with the customer's first saved address (they can still change it).
+        if (_address == null && _fromOrder == null && saved.isNotEmpty) _address = saved.first;
         _loaded = true;
       });
     } on ApiException catch (e) {
@@ -284,7 +286,9 @@ class _OrderFormState extends State<OrderForm> {
                     child: Row(children: [
                       Expanded(
                         child: Text(
-                          _addressText.isEmpty ? 'Pin on map or type address' : _addressText,
+                          _addressText.isEmpty
+                              ? 'Pin on map or type address'
+                              : (_address?.id != null && _address!.name.isNotEmpty ? '${_address!.name}: $_addressText' : _addressText),
                           style: TextStyle(color: _addressText.isEmpty ? Brand.muted : Brand.ink),
                         ),
                       ),
