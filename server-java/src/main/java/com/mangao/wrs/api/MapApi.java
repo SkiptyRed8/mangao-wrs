@@ -44,7 +44,7 @@ public class MapApi {
     boolean rider = "Rider".equals(Auth.role(me));
     Orders.Station station = orders.stationPoint();
     List<Map<String, Object>> rows = db.query(
-        "SELECT o.order_id, o.customer_name, o.quantity, o.order_type, o.status, o.arrival, o.rider_id, o.delivery_address_text,"
+        "SELECT o.order_id, o.customer_name, o.quantity, o.order_type, o.status, o.arrival, o.rider_id, o.out_at, o.delivery_address_text,"
             + " o.delivery_latitude AS lat, o.delivery_longitude AS lng, o.contact_phone"
             + " FROM orders o WHERE o.status = 'Out for Delivery'" + (rider ? " AND o.rider_id = ?" : "") + " ORDER BY o.out_at, o.order_id",
         rider ? new Object[] {Auth.id(me)} : new Object[0]);
@@ -94,6 +94,7 @@ public class MapApi {
           "type", o.get("order_type"),
           "status", o.get("status"),
           "arrival", o.get("arrival"),
+          "outText", V.instant(o.get("out_at")) != null ? Clock.dateClock(V.instant(o.get("out_at"))) : "",
           "riderId", V.longOrNull(o.get("rider_id")),
           "address", V.s(o.get("delivery_address_text")),
           "lat", V.numOrNull(o.get("lat")),

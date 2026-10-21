@@ -318,19 +318,28 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         ),
         if (_error != null) Positioned(left: 12, right: 12, top: 12, child: MsgBanner(_error!.title, sub: _error!.message)),
         if (d != null && orders.isEmpty)
-          const Center(
-            child: Card(
-              color: Colors.white,
-              child: Padding(padding: EdgeInsets.all(16), child: Text('No deliveries running', style: TextStyle(fontWeight: FontWeight.w800))),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Brand.blue, width: 1.2),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+              ),
+              child: const Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.local_shipping_outlined, color: Brand.blue, size: 30),
+                SizedBox(height: 6),
+                Text('No deliveries running', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                SizedBox(height: 2),
+                Text('The rider shows here when orders go Out for Delivery.',
+                    textAlign: TextAlign.center, style: TextStyle(color: Brand.muted, fontSize: 12.5)),
+              ]),
             ),
           ),
-        if (d != null && orders.isNotEmpty && riders.cast<Map<String, dynamic>>().every((r) => r['lat'] == null))
-          const Positioned(
-            left: 12,
-            right: 12,
-            top: 12,
-            child: Note("Waiting for the rider's location."),
-          ),
+        if (d != null && orders.isNotEmpty && _error == null)
+          Positioned(left: 12, right: 12, top: 12, child: _running(orders.cast<Map<String, dynamic>>(), riders.cast<Map<String, dynamic>>())),
         if (_pin != null)
           Positioned(
             left: 12,
@@ -354,6 +363,53 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
       ]),
     );
   }
+}
+
+extension on _LiveMapScreenState {
+  /// Top of the map: what is on the road now ("1 delivery running", each order with the time it went
+  /// out), and a reminder when the rider has not moved for a long time (an order left Out for Delivery).
+  Widget _running(List<Map<String, dynamic>> orders, List<Map<String, dynamic>> riders) {
+    final noPlace = riders.every((r) => r['lat'] == null);
+    final still = riders.where((r) => ((r['minutesAgo'] ?? 0) as num) >= 30).toList();
+    final shown = orders.take(3).toList();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Brand.blue, width: 1.2),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Text('${orders.length} ${orders.length == 1 ? 'delivery' : 'deliveries'} running',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+        for (final o in shown)
+          Text(
+            '${o['n']}  ${o['name']} · ${_LiveMapScreenState._step(o)}${(o['outText'] ?? '') == '' ? '' : ' · out since ${o['outText']}'}',
+            style: const TextStyle(fontSize: 12.5),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        if (orders.length > shown.length) Text('+${orders.length - shown.length} more', style: const TextStyle(fontSize: 12.5, color: Brand.muted)),
+        if (noPlace)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text("Waiting for the rider's location.", style: TextStyle(fontSize: 12.5, color: Brand.blue, fontWeight: FontWeight.w700)),
+          ),
+        for (final r in still)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '${r['name'] == 'Owner' ? 'The owner' : (r['name'] as String).split(' ').first} has not moved for ${_ago((r['minutesAgo'] as num).toInt())}. '
+              '${_rider ? 'If these orders are done, mark them in Deliveries.' : 'If these orders are done, mark them Delivered or Not delivered.'}',
+              style: const TextStyle(fontSize: 12.5, color: Brand.blue, fontWeight: FontWeight.w700),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  static String _ago(int m) => m < 60 ? '$m min' : (m < 120 ? '1 hour' : (m < 1440 ? '${m ~/ 60} hours' : '${m ~/ 1440} ${m < 2880 ? 'day' : 'days'}'));
 }
 
 class _Points {
