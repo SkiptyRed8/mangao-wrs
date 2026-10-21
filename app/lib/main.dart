@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'screens/root.dart';
@@ -7,6 +9,12 @@ import 'theme/brand.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Errors go to the system log (adb logcat) so the team can see them; users never see this.
+  FlutterError.onError = (d) => print('[mangao-error] ${d.exceptionAsString()}\n${d.stack}');
+  PlatformDispatcher.instance.onError = (e, st) {
+    print('[mangao-error] $e\n$st');
+    return true;
+  };
   runApp(const MangaoApp());
 }
 

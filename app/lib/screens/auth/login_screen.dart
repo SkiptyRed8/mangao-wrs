@@ -47,7 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _password.clear(); // wireframe: the password is cleared after an error
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      print('[mangao-login] $e\n$st'); // system log only (adb logcat), for the team
       if (mounted) {
         setState(() {
           _error = const ApiException(0, 'NOT_FINISHED', 'Log in did not finish', 'Check the internet, then tap Log in again.');
