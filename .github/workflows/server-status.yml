@@ -65,6 +65,8 @@ jobs:
             out=$(curl -s -o /tmp/g.json -w "%{http_code} %{time_total}s" --max-time 60 -H "Authorization: Bearer $tok" "$URL$p" || echo "no answer")
             echo "::notice title=$p::$out $(head -c 300 /tmp/g.json)"
           done
+          curl -s --max-time 60 -H "Authorization: Bearer $tok" "$URL/api/map" > /tmp/map.json
+          echo "::notice title=live map now::$(python3 -c "import json;d=json.load(open('/tmp/map.json'));print('riders',[(r['name'],r.get('minutesAgo')) for r in d['riders']],'orders',[(o['id'],o['name'],o['status'],o.get('arrival'),o['lat'] is not None) for o in d['orders']])" 2>&1 | head -c 600)"
           out=$(curl -s -o /tmp/n.json -w "%{http_code} %{time_total}s" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=Commonwealth%20Avenue")
           echo "::notice title=Nominatim direct from GitHub::$out $(head -c 300 /tmp/n.json)"
           for q in "SM%20Fairview" "Batasan%20Hills" "Riverside%20Commonwealth" "Ever%20Gotesco"; do

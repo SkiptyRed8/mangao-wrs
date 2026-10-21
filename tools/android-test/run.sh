@@ -25,6 +25,12 @@ xy=$(python3 tools/android-test/tap.py "$OUT/2b-login.xml" text "Log in" last)
 sleep 45
 adb exec-out screencap -p > "$OUT/3-after-login.png"
 adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml "$OUT/3-after-login.xml"
+# Live Map tab (staff): the map, or "No deliveries running" when nothing is out.
+xy=$(python3 tools/android-test/tap.py "$OUT/3-after-login.xml" starts "Live Map")
+[ -n "$xy" ] && adb shell input tap $xy
+sleep 20
+adb exec-out screencap -p > "$OUT/4-live-map.png"
+adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml "$OUT/4-live-map.xml"
 adb logcat -d | grep -i -E "flutter|mangao" > "$OUT/log.txt" || true
 grep -o 'text="[^"]\+"' "$OUT/3-after-login.xml" | head -40 > "$OUT/3-screen-text.txt" || true
 exit 0
