@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../services/net_io.dart' as net;
+
 String _short(Object e) => '${e.runtimeType}: ${'$e'.split('\n').first}';
 
 /// Step by step: the server name's address, a plain connection, the secure (HTTPS) connection,
@@ -46,6 +48,14 @@ Future<String> connectionTest(String baseUrl) async {
     } catch (e) {
       out.writeln('$name: failed after ${sw.elapsedMilliseconds} ms (${_short(e)})');
     }
+  }
+  // 6: the way the app itself connects (fallbacks included).
+  sw = Stopwatch()..start();
+  try {
+    final r = await net.makeHttpClient().get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 60));
+    out.writeln('6 App: ${r.statusCode} (${sw.elapsedMilliseconds} ms) via ${net.connectionNote(host)}');
+  } catch (e) {
+    out.writeln('6 App: failed after ${sw.elapsedMilliseconds} ms (${_short(e)})');
   }
   return out.toString().trim();
 }

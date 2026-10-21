@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import 'net.dart';
 
 /// An error from the server, with the wording shown in the app
 /// (a bold [title] and one line [message] under it).
@@ -37,7 +38,7 @@ class Api {
 
   Api({String? baseUrl, http.Client? client})
       : _baseUrl = baseUrl,
-        _client = client ?? http.Client();
+        _client = client ?? makeHttpClient();
 
   Future<Map<String, dynamic>> get(String path) => _send('GET', path);
   Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) => _send('POST', path, body);

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config.dart';
+import 'net.dart';
 
 /// One message from the server: 'order' (an order changed), 'notification' (new alert),
 /// 'location' (a rider moved) or 'refresh' (stock or tank changed).
@@ -43,7 +44,7 @@ class Realtime {
     final uri = _uri;
     if (uri == null) return;
     try {
-      final ws = WebSocketChannel.connect(uri);
+      final ws = openWebSocket(uri);
       _ws = ws;
       _sub = ws.stream.listen(
         (msg) {

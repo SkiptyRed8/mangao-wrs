@@ -102,6 +102,9 @@ jobs:
             --title "Mangao WRS app (latest) - version $VERSION" \
             --notes "Android app version $VERSION, built from commit ${GITHUB_SHA::7}. Server: $API_URL. On the phone: download mangao-wrs.apk and open it (allow installing from this source). A newer version installs over the old one." \
             --target "$GITHUB_SHA" --latest
+          # Make sure the download page shows it (a release can stay an unpublished draft).
+          gh release edit app-latest --draft=false --latest || true
+          test "$(gh release view app-latest --json isDraft --jq .isDraft)" = "false"
 
       - name: Upload web app for GitHub Pages
         uses: actions/upload-pages-artifact@v3
@@ -118,6 +121,7 @@ jobs:
           gh release delete build-report --yes --cleanup-tag 2>/dev/null || true
           gh release create build-report build-report.txt --title "Last app build report" \
             --notes "Output of the last app build (commit ${GITHUB_SHA::7})." --target "$GITHUB_SHA" --prerelease --latest=false
+          gh release edit build-report --draft=false || true
 
   pages:
     needs: build

@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config.dart';
 import '../../services/api.dart';
+import '../../services/net.dart';
 import '../../services/app_state.dart';
 import '../../theme/brand.dart';
 import '../../utils/format.dart';
@@ -140,7 +140,7 @@ class _ExportReportState extends State<ExportReport> {
   /// Phone: downloads the file into the app (the link works for 5 minutes).
   Future<Uint8List> _fetch() async {
     try {
-      final res = await http.get(Uri.parse('${AppConfig.apiUrl}$_url')).timeout(const Duration(seconds: 60));
+      final res = await makeHttpClient().get(Uri.parse('${AppConfig.apiUrl}$_url')).timeout(const Duration(seconds: 60));
       if (res.statusCode != 200 || res.bodyBytes.isEmpty) throw _notSaved;
       return res.bodyBytes;
     } on ApiException {
