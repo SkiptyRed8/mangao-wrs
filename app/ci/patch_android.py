@@ -59,7 +59,10 @@ if kts.exists():
 '''
     if 'create("mangao")' not in g:
         g = re.sub(r'(android\s*\{)', r'\1' + block.replace('\\', '\\\\'), g, count=1)
-    g = g.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("mangao")')
+    # No code shrinking (R8): it removed parts of the plugins (saving on the phone failed with
+    # NoSuchMethodError in shared_preferences), so the app could not keep the log-in.
+    g = g.replace('signingConfig = signingConfigs.getByName("debug")',
+                  'signingConfig = signingConfigs.getByName("mangao")\n            isMinifyEnabled = false\n            isShrinkResources = false')
     if 'getByName("mangao")' not in g:
         sys.exit('could not set the release signing in build.gradle.kts')
     kts.write_text(g)
@@ -77,12 +80,26 @@ elif groovy.exists():
 '''
     if 'mangao {' not in g:
         g = re.sub(r'(android\s*\{)', r'\1' + block.replace('\\', '\\\\'), g, count=1)
-    g = g.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.mangao')
+    g = g.replace('signingConfig signingConfigs.debug',
+                  'signingConfig signingConfigs.mangao\n            minifyEnabled false\n            shrinkResources false')
     if 'signingConfigs.mangao' not in g:
         sys.exit('could not set the release signing in build.gradle')
     groovy.write_text(g)
 else:
     sys.exit('no android/app/build.gradle(.kts)')
+
+# Backup if shrinking is still on: keep every plugin's Android code.
+(app / 'android/app/proguard-rules.pro').write_text('''# Keep the plugins' code (shrinking removed parts of shared_preferences before).
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class dev.flutter.pigeon.** { *; }
+-keep class com.baseflow.** { *; }
+-keep class com.mr.flutter.plugin.filepicker.** { *; }
+-keep class io.flutter.plugins.firebase.** { *; }
+-keep class com.google.firebase.** { *; }
+-keepclassmembers class * { @androidx.annotation.Keep *; }
+-dontwarn io.flutter.embedding.**
+''')
 
 print(manifest.read_text())
 print('Android project ready')
