@@ -67,6 +67,10 @@ jobs:
           done
           curl -s --max-time 60 -H "Authorization: Bearer $tok" "$URL/api/map" > /tmp/map.json
           echo "::notice title=live map now::$(python3 -c "import json;d=json.load(open('/tmp/map.json'));print('riders',[(r['name'],r.get('minutesAgo')) for r in d['riders']],'orders',[(o['id'],o['name'],o['status'],o.get('arrival'),o['lat'] is not None) for o in d['orders']])" 2>&1 | head -c 600)"
+          for id in $(python3 -c "import json;print(' '.join(str(o['id']) for o in json.load(open('/tmp/map.json'))['orders']))" 2>/dev/null); do
+            curl -s --max-time 60 -H "Authorization: Bearer $tok" "$URL/api/work/orders/$id" > /tmp/o.json
+            echo "::notice title=order $id on the road::$(python3 -c "import json;d=json.load(open('/tmp/o.json'));o=d.get('order',{});print(o.get('outAt'),o.get('riderName'),o.get('paymentStatus'),[(s['status'],s['at'],s['by']) for s in d.get('timeline',[])])" 2>&1 | head -c 900)"
+          done
           out=$(curl -s -o /tmp/n.json -w "%{http_code} %{time_total}s" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=Commonwealth%20Avenue")
           echo "::notice title=Nominatim direct from GitHub::$out $(head -c 300 /tmp/n.json)"
           for q in "SM%20Fairview" "Batasan%20Hills" "Riverside%20Commonwealth" "Ever%20Gotesco"; do
