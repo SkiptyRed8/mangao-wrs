@@ -1,0 +1,54 @@
+# Installs the newest APK on Android emulators and logs in as the demo staff: one with normal
+# internet, one whose name lookup (DNS) does not work, to test the app's DNS-over-HTTPS fallback.
+# Screenshots, screen text and the app's log lines go to the "android-test" release.
+name: Android test
+
+on:
+  workflow_run:
+    workflows: ["App build"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  emulator:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        net: [normal, broken-dns]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Newest APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download app-latest -p mangao-wrs.apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          OUT: shots-${{ matrix.net }}
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot ${{ matrix.net == 'broken-dns' && '-dns-server 10.255.255.1' || '' }}
+          script: bash tools/android-test/run.sh
+      - name: Results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip -r results-${{ matrix.net }}.zip shots-${{ matrix.net }}
+          echo "::notice title=${{ matrix.net }} after log in::$(tr '\n' ' ' < shots-${{ matrix.net }}/3-screen-text.txt | head -c 600)"
+          echo "::notice title=${{ matrix.net }} app log::$(tail -15 shots-${{ matrix.net }}/log.txt | tr '\n' ' ' | head -c 900)"
+          gh release view android-test >/dev/null 2>&1 || gh release create android-test --title "Android emulator test results" --notes "Screenshots from the Android test workflow." --prerelease --latest=false
+          gh release edit android-test --draft=false || true
+          gh release upload android-test results-${{ matrix.net }}.zip --clobber

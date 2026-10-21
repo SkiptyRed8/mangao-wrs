@@ -61,8 +61,10 @@ class Api {
       final streamed = await _client.send(req).timeout(const Duration(seconds: 20));
       res = await http.Response.fromStream(streamed).timeout(const Duration(seconds: 20));
     } on TimeoutException {
+      print('[mangao-api] $method $path: no answer within 20 s'); // system log only (adb logcat), for the team
       throw const ApiException(0, 'TIMEOUT', 'Taking too long', 'Check your internet connection and try again.');
-    } catch (_) {
+    } catch (e) {
+      print('[mangao-api] $method $path failed: $e'); // system log only (adb logcat), for the team
       throw const ApiException(0, 'OFFLINE', 'No connection', 'Check your internet connection and try again.');
     }
 
