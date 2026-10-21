@@ -121,7 +121,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
 
   static String _status(Map<String, dynamic> o) => switch (o['status'] as String) {
         'Recorded' => 'Walk-in',
-        'Out for Delivery' => 'Out for delivery',
+        'Out for Delivery' => o['arrival'] == 'Arrived' ? 'Arrived' : (o['arrival'] == 'Arriving' ? 'Arriving' : 'Out for delivery'),
         'Not Delivered' => 'Not delivered',
         final s => s,
       };

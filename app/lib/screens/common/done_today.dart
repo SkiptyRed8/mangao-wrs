@@ -154,7 +154,7 @@ class RiderOrderView extends StatelessWidget {
         body: Body([
           Box(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Label('Order info'),
+              const Label('Order details'),
               KV('Customer name', o.name.isEmpty ? 'Guest' : o.name),
               KV('Address', o.address),
               KV('Gallons', '${o.quantity}'),

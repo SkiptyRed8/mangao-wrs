@@ -63,14 +63,24 @@ String etaText(RouteResult r) {
 const arrivedMeters = 50.0;
 const arrivingMeters = 300.0;
 
+/// Arrived, Arriving or null (on the way) from the rider's place: within [arrivedMeters] /
+/// [arrivingMeters] of the pin, or of the end of the street route (a pin away from the road is
+/// reached where the road ends). [server] is the order's own step (orders.arrival) when known.
+String? arrivalStep(LatLng rider, LatLng? home, RouteResult? view, {String? server}) {
+  if (server == 'Arrived') return 'Arrived';
+  var m = home == null ? double.infinity : metersBetween(rider, home);
+  if (view != null && view.streets) m = math.min(m, view.meters);
+  if (m <= arrivedMeters) return 'Arrived';
+  if (server == 'Arriving' || m <= arrivingMeters) return 'Arriving';
+  return null;
+}
+
 /// The customer's line above the map: "Your rider has arrived. Please prepare ₱150.00",
 /// "Arriving - please prepare ₱150.00", or "About 6 min away · 1.8 km".
-String arrivalText(LatLng rider, LatLng? home, RouteResult? view, {String? prepare}) {
-  if (home != null) {
-    final m = metersBetween(rider, home);
-    if (m <= arrivedMeters) return 'Your rider has arrived.${prepare == null ? '' : ' $prepare'}';
-    if (m <= arrivingMeters) return prepare == null ? 'Arriving now' : 'Arriving - ${prepare[0].toLowerCase()}${prepare.substring(1)}';
-  }
+String arrivalText(LatLng rider, LatLng? home, RouteResult? view, {String? prepare, String? server}) {
+  final step = arrivalStep(rider, home, view, server: server);
+  if (step == 'Arrived') return 'Your rider has arrived.${prepare == null ? '' : ' $prepare'}';
+  if (step == 'Arriving') return prepare == null ? 'Arriving now' : 'Arriving - ${prepare[0].toLowerCase()}${prepare.substring(1)}';
   return view == null ? 'Finding the route...' : etaText(view);
 }
 
@@ -437,7 +447,10 @@ class DeliveryMap extends StatefulWidget {
 
   /// "Please prepare ₱150.00" (null when the order is already paid).
   final String? prepare;
-  const DeliveryMap({super.key, required this.home, required this.rider, this.start, this.height = 260, this.prepare});
+
+  /// The order's step from the server: Arriving, Arrived or null.
+  final String? arrival;
+  const DeliveryMap({super.key, required this.home, required this.rider, this.start, this.height = 260, this.prepare, this.arrival});
 
   @override
   State<DeliveryMap> createState() => _DeliveryMapState();
@@ -516,7 +529,7 @@ class _DeliveryMapState extends State<DeliveryMap> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              r == null ? "Waiting for the rider's location..." : arrivalText(r, h, view, prepare: widget.prepare),
+              r == null ? "Waiting for the rider's location..." : arrivalText(r, h, view, prepare: widget.prepare, server: widget.arrival),
               style: TextStyle(fontWeight: FontWeight.w800, color: r == null ? Brand.muted : Brand.ink),
             ),
           ),

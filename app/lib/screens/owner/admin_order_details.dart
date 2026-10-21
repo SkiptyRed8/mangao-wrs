@@ -49,9 +49,7 @@ class _AdminOrderDetailsState extends State<AdminOrderDetails> {
 
   static String statusTag(Order o) => switch (o.status) {
         'Delivered' => o.payment == 'Paid at station' ? 'Delivered (Paid at station)' : 'Delivered (${o.paymentStatus})',
-        'Not Delivered' => 'Not delivered',
-        'Out for Delivery' => 'Out for delivery',
-        _ => o.status,
+        _ => o.shownStatus,
       };
 
   Widget _box(String label, List<Widget> children, {Widget? action}) => Padding(

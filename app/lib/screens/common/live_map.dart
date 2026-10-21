@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../models/user.dart';
 import '../../services/api.dart';
 import '../../services/app_state.dart';
 import '../../services/realtime.dart';
@@ -18,7 +19,8 @@ import '../staff/staff_todo.dart';
 /// Admin Orders 7 / Staff 9: Live Map. Each rider is a sidecar that glides along the streets and turns
 /// to the direction it goes, with the route to the rider's nearest stop and the minutes left (grey with
 /// "Last seen" when it has not moved for 5 minutes), and numbered pins for the orders on the road. Tap the rider for the rider card (Call, the
-/// orders on board); tap a pin for the order. Staff see and call only.
+/// orders on board); tap a pin for the order. Staff see and call only. The delivery rider sees their
+/// own trip (Rider tab Live Map).
 class LiveMapScreen extends StatefulWidget {
   final bool pushed;
   const LiveMapScreen({super.key, this.pushed = false});
@@ -171,7 +173,15 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
     return _Points(pts);
   }
 
+  /// The delivery rider sees the map of their own trip (no order details here: they are in Deliveries).
+  bool get _rider => app.shownRole == Role.rider;
+
+  /// "Out for delivery", "Arriving" or "Arrived" for an order on the map.
+  static String _step(Map<String, dynamic> o) =>
+      o['arrival'] == 'Arrived' ? 'Arrived' : (o['arrival'] == 'Arriving' ? 'Arriving' : 'Out for delivery');
+
   void _openOrder(int id) {
+    if (_rider) return;
     if (app.isOwner && app.view == AppView.admin) {
       go(context, AdminOrderDetails(orderId: id));
     } else {
@@ -195,19 +205,21 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Next stop: pin ${stop['n']}, ${stop['name']}${route == null ? '' : '\n${arrivalText(_pos(r)!, _pos(stop), route)}'}',
+                'Next stop: pin ${stop['n']}, ${stop['name']}${route == null ? '' : '\n${arrivalText(_pos(r)!, _pos(stop), route, server: stop['arrival'] as String?)}'}',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ]),
           const Gap(10),
         ],
-        Btn('Call', () => callNumber(context, (r['phone'] ?? '') as String), outline: true, icon: Icons.call),
-        const Gap(12),
+        if (!_rider) ...[
+          Btn('Call', () => callNumber(context, (r['phone'] ?? '') as String), outline: true, icon: Icons.call),
+          const Gap(12),
+        ],
         for (final o in orders)
           RowLink(
             '${o['n']}  ${o['name']}',
-            sub: '${o['quantity']} ${o['quantity'] == 1 ? 'gallon' : 'gallons'} · Out for delivery',
+            sub: '${o['quantity']} ${o['quantity'] == 1 ? 'gallon' : 'gallons'} · ${_step(o)}',
             onTap: () {
               Navigator.pop(c);
               _openOrder((o['id'] as num).toInt());
@@ -222,14 +234,14 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
     final stale = ((r['minutesAgo'] ?? 99) as num) > 5;
     final stop = _nextStop(r);
     final route = _routeOf(r);
-    final m = stop == null ? null : metersBetween(_pos(r)!, _pos(stop)!);
+    final step = stop == null ? null : arrivalStep(_pos(r)!, _pos(stop), route, server: stop['arrival'] as String?);
     final label = stale
         ? 'Last seen ${r['minutesAgo']} min ago'
         : stop == null
             ? (r['name'] as String).split(' ').first
-            : m! <= arrivedMeters
+            : step == 'Arrived'
                 ? 'Arrived at ${stop['n']}'
-                : m <= arrivingMeters
+                : step == 'Arriving'
                     ? 'Arriving at ${stop['n']}'
                     : 'To ${stop['n']} · ${route == null ? '...' : etaShort(route)}';
     return SidecarLayer(
@@ -330,12 +342,12 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(_pin!['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    Text('${_pin!['quantity']} ${_pin!['quantity'] == 1 ? 'gallon' : 'gallons'} · Out for delivery',
+                    Text('${_pin!['quantity']} ${_pin!['quantity'] == 1 ? 'gallon' : 'gallons'} · ${_step(_pin!)}',
                         style: const TextStyle(color: Brand.muted)),
                     Text(_pin!['address'] as String, style: const TextStyle(fontSize: 12.5)),
                   ]),
                 ),
-                const Icon(Icons.chevron_right, color: Brand.blue),
+                if (!_rider) const Icon(Icons.chevron_right, color: Brand.blue),
               ]),
             ),
           ),

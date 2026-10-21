@@ -133,6 +133,7 @@ CREATE TABLE orders (
   notes VARCHAR(255) NULL,
   delivery_date DATE NULL COMMENT 'Day the customer chose for the delivery; NULL = as soon as possible',
   status ENUM('New','Processing','Out for Delivery','Delivered','Not Delivered','Declined','Cancelled','Recorded') NOT NULL,
+  arrival ENUM('Arriving','Arrived') NULL COMMENT 'While Out for Delivery: the rider is near (Arriving) or at the address (Arrived)',
   payment_method ENUM('COD','Pay on delivery','Paid at station','Walk-in') NOT NULL,
   payment_status ENUM('Pending','Paid','Unpaid') NOT NULL DEFAULT 'Pending',
   paid_at DATETIME NULL,

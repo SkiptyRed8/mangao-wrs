@@ -106,9 +106,11 @@ public class OrdersApi {
     Map<String, Object> rider = null;
     long otherStops = 0;
     if ("Out for Delivery".equals(o.get("status")) && o.get("rider_id") != null) {
-      // Other orders the same rider still has on the road (the sidecar may go to them first).
-      otherStops = V.lng(db.one("SELECT COUNT(*) AS n FROM orders WHERE rider_id = ? AND status = 'Out for Delivery' AND order_id <> ?",
-          o.get("rider_id"), o.get("order_id")).get("n"));
+      // Other customers' orders the same rider still has on the road (the sidecar may go to them
+      // first). The same customer's other orders on this trip are not counted.
+      otherStops = V.lng(db.one("SELECT COUNT(*) AS n FROM orders WHERE rider_id = ? AND status = 'Out for Delivery' AND order_id <> ?"
+              + " AND NOT (customer_id IS NOT NULL AND customer_id <=> ?) AND NOT (guest_token IS NOT NULL AND guest_token <=> ?)",
+          o.get("rider_id"), o.get("order_id"), o.get("customer_id"), o.get("guest_token")).get("n"));
       Map<String, Object> l = db.one("SELECT latitude, longitude, updated_at, is_sharing FROM rider_locations WHERE rider_id = ?", o.get("rider_id"));
       if (l != null && V.truthy(l.get("is_sharing"))) {
         rider = M.of("id", V.lng(o.get("rider_id")), "lat", V.num(l.get("latitude")), "lng", V.num(l.get("longitude")), "updatedAt", l.get("updated_at"));

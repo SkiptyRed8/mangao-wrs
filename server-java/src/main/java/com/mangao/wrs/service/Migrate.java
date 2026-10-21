@@ -63,6 +63,10 @@ public class Migrate {
       db.update("ALTER TABLE orders ADD COLUMN delivery_date DATE NULL COMMENT 'Day the customer chose for the delivery; NULL = as soon as possible' AFTER notes");
       done.add("delivery date");
     }
+    if (!columnExists("orders", "arrival")) {
+      db.update("ALTER TABLE orders ADD COLUMN arrival ENUM('Arriving','Arrived') NULL COMMENT 'While Out for Delivery: the rider is near (Arriving) or at the address (Arrived)' AFTER status");
+      done.add("arrival status");
+    }
     return done;
   }
 }

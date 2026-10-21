@@ -96,10 +96,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// Demo ride on/off (testing and presentations).
-  Future<void> _setDemoRide(bool on) async {
+  /// Demo ride on/off (testing and presentations), and how long the trip to each stop takes.
+  Future<void> _setDemoRide(bool on) => _demo({'on': on});
+  Future<void> _setDemoSeconds(int seconds) => _demo({'seconds': seconds});
+
+  static const _demoTimes = [(15, '15 sec'), (30, '30 sec'), (60, '1 min'), (120, '2 min'), (300, '5 min')];
+
+  Future<void> _demo(Map<String, dynamic> body) async {
     try {
-      final r = await app.api.put('/api/settings/demo-ride', {'on': on});
+      final r = await app.api.put('/api/settings/demo-ride', body);
       if (mounted) toast(context, (r['message'] ?? 'Saved') as String);
     } on ApiException catch (e) {
       if (mounted) toast(context, '${e.title}. ${e.message}', error: true);
@@ -161,21 +166,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
             ]),
             Box(
-              child: Row(children: [
-                const Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Demo ride', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    Gap(2),
-                    Text(
-                      'For testing and presentations: the sidecar drives by itself from the station along the streets to '
-                      'each stop (about 2 minutes per trip) and waits there until the rider marks the order. '
-                      'Turn it off for real deliveries, so the rider\'s phone moves the sidecar.',
-                      style: TextStyle(color: Brand.muted, fontSize: 12.5),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Demo ride', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      Gap(2),
+                      Text(
+                        'For testing and presentations: the sidecar drives by itself from the station along the streets to '
+                        'each stop and waits there until the rider marks the order. '
+                        'Turn it off for real deliveries, so the rider\'s phone moves the sidecar.',
+                        style: TextStyle(color: Brand.muted, fontSize: 12.5),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(value: s['demoRide'] == true, onChanged: _setDemoRide),
+                ]),
+                const Gap(8),
+                const Text('Trip time to each stop', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Gap(6),
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  for (final (sec, label) in _demoTimes)
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: ((s['demoSeconds'] ?? 60) as num).toInt() == sec,
+                      onSelected: (_) => _setDemoSeconds(sec),
+                      selectedColor: Brand.blue,
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: ((s['demoSeconds'] ?? 60) as num).toInt() == sec ? Colors.white : Brand.ink,
+                      ),
+                      side: const BorderSide(color: Brand.blue),
+                      showCheckmark: false,
                     ),
-                  ]),
-                ),
-                const SizedBox(width: 8),
-                Switch(value: s['demoRide'] == true, onChanged: _setDemoRide),
+                ]),
               ]),
             ),
           ]);

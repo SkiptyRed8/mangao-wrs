@@ -14,8 +14,8 @@ import '../../widgets/delivery_map.dart';
 import '../../widgets/map_widgets.dart';
 import 'order_form.dart';
 
-/// Customer 4 and 5: Order Details. The 5 steps (Waiting for order to be accepted, Order accepted,
-/// Processing, Out for Delivery, Delivered), the processing message with the estimated delivery time,
+/// Customer 4 and 5: Order Details. The steps (Waiting for order to be accepted, Order accepted,
+/// Processing, Out for Delivery, Arriving, Rider has arrived, Delivered), the processing message with the estimated delivery time,
 /// Call station, and Cancel order while it waits to be accepted. Declined, Cancelled and Not delivered
 /// show a tag, the reason or the rider's note.
 class CustomerOrderDetails extends StatefulWidget {
@@ -32,7 +32,7 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
   StreamSubscription<RtEvent>? _live;
   bool _busy = false;
 
-  static const steps = ['Waiting for order to be accepted', 'Order accepted', 'Processing', 'Out for Delivery', 'Delivered'];
+  static const steps = ['Waiting for order to be accepted', 'Order accepted', 'Processing', 'Out for Delivery', 'Arriving', 'Rider has arrived', 'Delivered'];
 
   @override
   void initState() {
@@ -68,12 +68,15 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
     }
   }
 
-  /// Which of the 5 steps is current (the ones before it are done).
+  /// Which of the steps is current (the ones before it are done). Out for Delivery moves on by itself
+  /// to Arriving and Rider has arrived as the rider comes near.
   static int current(Order o) => switch (o.status) {
         'New' => 0,
         'Processing' => 2,
+        'Out for Delivery' when o.arrival == 'Arrived' => 5,
+        'Out for Delivery' when o.arrival == 'Arriving' => 4,
         'Out for Delivery' => 3,
-        _ => 4,
+        _ => 6,
       };
 
   @override
@@ -104,9 +107,11 @@ class _CustomerOrderDetailsState extends State<CustomerOrderDetails> {
                 if (o.status == 'Processing')
                   Note('Your $what order is processing. Please wait for the status of your order.'),
                 if (o.status == 'Out for Delivery')
-                  Note(((d['otherStops'] ?? 0) as num) > 0
-                      ? 'Your rider is also delivering ${d['otherStops']} other ${d['otherStops'] == 1 ? 'order' : 'orders'} on this trip.'
-                      : 'Your rider is on the way.'),
+                  Note(o.arrival == 'Arrived'
+                      ? 'Your rider has arrived.'
+                      : ((d['otherStops'] ?? 0) as num) > 0 && o.arrival == null
+                          ? 'Your rider is also delivering to ${d['otherStops']} other ${d['otherStops'] == 1 ? 'customer' : 'customers'} on this trip.'
+                          : (o.arrival == 'Arriving' ? 'Your rider is almost there.' : 'Your rider is on the way.')),
                 Box(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Label('Your order'),
@@ -260,6 +265,7 @@ class RiderMap extends StatelessWidget {
       rider: r,
       start: start,
       prepare: order.paymentStatus == 'Paid' ? null : 'Please prepare ${peso(order.total)}',
+      arrival: order.arrival,
     );
   }
 }

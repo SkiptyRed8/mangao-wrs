@@ -49,8 +49,7 @@ class _MyOrdersState extends State<MyOrders> {
 
   static String activeTag(Order o) => switch (o.status) {
         'New' => 'Waiting to be accepted',
-        'Out for Delivery' => 'Out for delivery',
-        _ => o.status,
+        _ => o.shownStatus,
       };
 
   Future<void> _reorder(Order o) async {

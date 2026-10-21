@@ -101,13 +101,41 @@ describe('Rider arriving and arrived', () => {
     const near = await query("SELECT title, message FROM notifications WHERE order_id = ? AND notification_type = 'Rider Arriving'", [id]);
     assert.equal(near.length, 1);
     assert.equal(near[0].message, 'Your rider is almost there. Please prepare ₱70.00.');
+    // The status moves on by itself: Out for Delivery -> Arriving.
+    let o = await as(ana, api().get(`/api/orders/${id}`));
+    assert.equal(o.body.order.status, 'Out for Delivery');
+    assert.equal(o.body.order.arrival, 'Arriving');
+    assert.ok(o.body.timeline.some((s) => s.status === 'Arriving'));
 
     await as(rider, api().post('/api/rider/location')).send({ lat: 14.6977, lng: 121.0886 }); // about 11 m
     const here = await query("SELECT title FROM notifications WHERE order_id = ? AND notification_type = 'Rider Arrived'", [id]);
     assert.equal(here.length, 1);
     assert.equal(here[0].title, 'Your rider has arrived');
 
-    const o = await as(ana, api().get(`/api/orders/${id}`));
+    o = await as(ana, api().get(`/api/orders/${id}`));
     assert.equal(typeof o.body.otherStops, 'number');
+    assert.equal(o.body.order.arrival, 'Arrived');
+    assert.ok(o.body.timeline.some((s) => s.status === 'Arrived'));
+    const board = await as(owner, api().get('/api/map'));
+    assert.equal(board.body.orders.find((x) => x.id === id).arrival, 'Arrived');
+
+    // Delivered ends the trip; the arrival step is no longer shown.
+    await as(rider, api().post(`/api/rider/orders/${id}/delivered`)).send({ paid: true });
+    o = await as(ana, api().get(`/api/orders/${id}`));
+    assert.equal(o.body.order.status, 'Delivered');
+    assert.equal(o.body.order.arrival, null);
+  });
+
+  test('the "other orders on this trip" note counts only other customers', async () => {
+    if (!API_URL) return;
+    setNow(null);
+    const juan = await one("SELECT user_id FROM users WHERE phone_number = '09170000003'");
+    const a = (await place({})).body.order.id;
+    const b = (await place({ quantity: 3 })).body.order.id;
+    await as(owner, api().post('/api/admin/orders/accept')).send({ ids: [a, b], riderId: juan.user_id });
+    await as(staff, api().post('/api/work/out')).send({ ids: [a, b] });
+    const o = await as(ana, api().get(`/api/orders/${a}`));
+    assert.equal(o.body.otherStops, 0, 'both orders are Ana\'s');
+    for (const id of [a, b]) await as(rider, api().post(`/api/rider/orders/${id}/delivered`)).send({ paid: true });
   });
 });

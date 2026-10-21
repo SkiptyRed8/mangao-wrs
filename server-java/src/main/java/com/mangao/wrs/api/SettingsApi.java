@@ -60,19 +60,38 @@ public class SettingsApi {
     Map<String, Object> out = M.of("prices", settings.currentPrices());
     out.putAll(settings.stationSettings());
     out.put("demoRide", demoRide.isOn());
+    out.put("demoSeconds", demoRide.legSeconds());
     return out;
   }
 
-  /** PUT /api/settings/demo-ride { on } -> { demoRide, message }  (testing and presentations) */
+  /**
+   * PUT /api/settings/demo-ride { on?, seconds? } -> { demoRide, demoSeconds, message }  (testing and presentations)
+   * seconds: how long the trip to each stop takes, 15 to 300.
+   */
   @PutMapping("/demo-ride")
   public Map<String, Object> demoRide(HttpServletRequest req, @RequestBody(required = false) Map<String, Object> raw) {
     auth.require(req, "Owner");
     Object v = raw == null ? null : raw.get("on");
-    if (!(v instanceof Boolean)) throw HttpError.bad("CHOICE_MISSING", "Choose on or off", "Turn the demo ride on or off.");
-    demoRide.set((Boolean) v);
-    return M.of("demoRide", demoRide.isOn(), "message", (Boolean) v
-        ? "Demo ride on: the sidecar drives from the station by itself."
-        : "Demo ride off: the rider's phone moves the sidecar.");
+    Object s = raw == null ? null : raw.get("seconds");
+    if (v == null && s == null) throw HttpError.bad("CHOICE_MISSING", "Choose on or off", "Turn the demo ride on or off.");
+    if (v != null && !(v instanceof Boolean)) throw HttpError.bad("CHOICE_MISSING", "Choose on or off", "Turn the demo ride on or off.");
+    String message = null;
+    if (s != null) {
+      double n = V.num(s);
+      if (Double.isNaN(n) || n < DemoRide.MIN_LEG_SECONDS || n > DemoRide.MAX_LEG_SECONDS) {
+        throw HttpError.bad("TIME_INVALID", "Trip time not valid", "Choose from 15 seconds to 5 minutes.", "field", "seconds");
+      }
+      demoRide.setLegSeconds((int) Math.round(n));
+      int t = demoRide.legSeconds();
+      message = "Demo trip to each stop: " + (t < 60 ? t + " seconds" : (t % 60 == 0 ? (t / 60) + (t == 60 ? " minute" : " minutes") : t / 60 + " min " + t % 60 + " s")) + ".";
+    }
+    if (v != null) {
+      demoRide.set((Boolean) v);
+      message = (Boolean) v
+          ? "Demo ride on: the sidecar drives from the station by itself."
+          : "Demo ride off: the rider's phone moves the sidecar.";
+    }
+    return M.of("demoRide", demoRide.isOn(), "demoSeconds", demoRide.legSeconds(), "message", message);
   }
 
   private static double money(Object v, String label, String key) {

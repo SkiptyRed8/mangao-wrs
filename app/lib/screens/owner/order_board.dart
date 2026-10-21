@@ -279,7 +279,7 @@ class BoardCard extends StatelessWidget {
       'Delivered' => Tag(o.payment == 'Paid at station' ? 'Paid at station' : o.paymentStatus, filled: o.paymentStatus == 'Unpaid'),
       'Not Delivered' => const Tag('Not delivered', filled: true),
       'Declined' || 'Cancelled' => Tag(o.status, filled: true, red: true),
-      _ => Tag(o.status == 'Out for Delivery' ? 'Out for delivery' : o.status, filled: o.status == 'Out for Delivery'),
+      _ => Tag(o.shownStatus, filled: o.status == 'Out for Delivery'),
     };
     return Box(
       onTap: onTap,

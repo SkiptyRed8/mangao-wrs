@@ -150,6 +150,7 @@ public class Orders {
         "km", km,
         "notes", V.s(o.get("notes")),
         "status", o.get("status"),
+        "arrival", "Out for Delivery".equals(o.get("status")) ? o.get("arrival") : null,
         "payment", pay,
         "paymentText", pay == null ? null : PAYMENT_TEXT.getOrDefault(pay, pay),
         "paymentStatus", o.get("payment_status"),

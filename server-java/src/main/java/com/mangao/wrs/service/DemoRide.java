@@ -25,14 +25,15 @@ import org.springframework.stereotype.Component;
  *
  * Demo ride (owner: More > Prices & Settings, for testing and presentations when the rider's phone
  * is not really moving): the server drives the sidecar from the station along the streets to each
- * stop, waits at a stop until the rider marks it Delivered or Not delivered, then goes on. The trip
- * to a stop takes at most about 2 minutes (shorter trips go at 25 km/h). The rider's phone GPS is
+ * stop, waits at a stop until the rider marks it Delivered or Not delivered, then goes on. The owner
+ * chooses how long the trip to each stop takes (15 seconds to 5 minutes, 1 minute at first); short
+ * trips still go at least 25 km/h. At the stop the order becomes Arrived. The rider's phone GPS is
  * not used while a demo ride runs. It is off when the server starts (DEMO_RIDE=true turns it on).
  */
 @Component
 public class DemoRide {
   private static final double MIN_SPEED = 25000 / 3600.0; // meters per second
-  private static final double MAX_LEG_SECONDS = 120;
+  public static final int MIN_LEG_SECONDS = 15, MAX_LEG_SECONDS = 300;
   private static final long TICK_MS = 2000;
 
   private final Db db;
@@ -42,6 +43,7 @@ public class DemoRide {
   private final Arrivals arrivals;
   private final AtomicBoolean on = new AtomicBoolean("true".equalsIgnoreCase(Env.get("DEMO_RIDE", "false").trim()));
   private final Map<Long, Ride> rides = new ConcurrentHashMap<>();
+  private final java.util.concurrent.atomic.AtomicInteger legSeconds = new java.util.concurrent.atomic.AtomicInteger(60);
   private ScheduledExecutorService timer;
 
   public DemoRide(Db db, Realtime realtime, Routes routes, Orders orders, Arrivals arrivals) {
@@ -54,6 +56,15 @@ public class DemoRide {
 
   public boolean isOn() {
     return on.get();
+  }
+
+  /** How long the trip to each stop takes (seconds). */
+  public int legSeconds() {
+    return legSeconds.get();
+  }
+
+  public void setLegSeconds(int s) {
+    legSeconds.set(Math.max(MIN_LEG_SECONDS, Math.min(MAX_LEG_SECONDS, s)));
   }
 
   /** A demo ride is moving this rider (the phone's GPS is then not used). */
@@ -153,7 +164,7 @@ public class DemoRide {
     final double[] along; // meters from the start to each point of the line
     final double[] stopAt; // meters from the start to each stop
     final List<Long> stopIds;
-    final double speed;
+    final java.util.Set<Long> reached = new java.util.HashSet<>();
     double done = 0;
 
     Ride(List<double[]> line, List<double[]> stops, List<Long> stopIds) {
@@ -178,8 +189,6 @@ public class DemoRide {
         stopAt[s] = along[best];
         from = best;
       }
-      double firstLeg = stopAt.length > 0 ? stopAt[0] : along[along.length - 1];
-      speed = Math.max(MIN_SPEED, firstLeg / MAX_LEG_SECONDS);
     }
 
     /** One move (every 2 seconds). False when the trip is over. */
@@ -189,18 +198,28 @@ public class DemoRide {
         open.add(V.lng(r.get("order_id")));
       }
       if (open.isEmpty()) return false;
-      // Stop at the first stop that is still out.
-      double limit = along[along.length - 1];
+      // Go to the first stop that is still out.
+      int stop = -1;
       for (int s = 0; s < stopIds.size(); s++) {
         if (open.contains(stopIds.get(s))) {
-          limit = stopAt[s];
+          stop = s;
           break;
         }
       }
-      if (done >= limit) return true; // waiting at the customer
-      done = Math.min(limit, done + speed * TICK_MS / 1000.0);
+      if (stop < 0) return false;
+      double limit = stopAt[stop];
+      if (done >= limit) {
+        // Waiting at the customer: the order is Arrived until the rider marks it.
+        if (reached.add(stopIds.get(stop))) arrivals.reached(stopIds.get(stop), riderId);
+        return true;
+      }
+      // The speed fits the owner's trip time for this leg (at least 25 km/h).
+      double legStart = stop == 0 ? 0 : Math.min(stopAt[stop - 1], limit);
+      double speed = Math.max(MIN_SPEED, (limit - legStart) / legSeconds.get());
+      done = Math.min(limit, Math.max(done, legStart) + speed * TICK_MS / 1000.0);
       double[] p = pointAt(done);
       move(riderId, p[0], p[1]);
+      if (done >= limit && reached.add(stopIds.get(stop))) arrivals.reached(stopIds.get(stop), riderId);
       return true;
     }
 

@@ -12,7 +12,7 @@ import '../shell.dart';
 import 'order_details.dart';
 import 'order_form.dart';
 
-/// Customer 2: Home. Active Order Card (status and estimated delivery time), Order Now, Price List.
+/// Customer 2: Home. Your current order (status and estimated delivery time), Order Now, Price List.
 class CustomerHome extends StatefulWidget {
   const CustomerHome({super.key});
 
@@ -94,12 +94,11 @@ class _CustomerHomeState extends State<CustomerHome> {
 /// The status a customer sees (Customer 5).
 String customerStatus(Order o) => switch (o.status) {
       'New' => 'Waiting to be accepted',
-      'Not Delivered' => 'Not delivered',
       'Delivered' => o.paymentStatus == 'Unpaid' ? 'Delivered · Unpaid' : 'Delivered',
-      _ => o.status,
+      _ => o.shownStatus,
     };
 
-/// Active Order Card on Customer Home.
+/// Your current order on Customer Home (wireframe: Active Order Card).
 class ActiveOrderCard extends StatelessWidget {
   final Order order;
   final VoidCallback onTap;
@@ -115,7 +114,7 @@ class ActiveOrderCard extends StatelessWidget {
       onTap: onTap,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Expanded(child: Label('Active Order Card')),
+          const Expanded(child: Label('Your current order')),
           Tag(customerStatus(o), filled: o.status != 'New'),
         ]),
         const Gap(6),

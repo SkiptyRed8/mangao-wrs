@@ -31,6 +31,7 @@ class Order {
   final String reason; // decline reason or not-delivered note
   final String createdText; // "Oct 20, 9:20 PM" (when the order was made, Philippine time)
   final String? deliveryDate; // "2026-10-22" chosen by the customer; null = as soon as possible
+  final String? arrival; // while Out for Delivery: Arriving (rider near) or Arrived (rider at the address)
 
   const Order({
     required this.id,
@@ -64,6 +65,7 @@ class Order {
     required this.reason,
     this.createdText = '',
     this.deliveryDate,
+    this.arrival,
   });
 
   static double? _d(dynamic v) => v == null ? null : (v as num).toDouble();
@@ -101,7 +103,18 @@ class Order {
         reason: (j['reason'] ?? '') as String,
         createdText: (j['createdText'] ?? '') as String,
         deliveryDate: j['deliveryDate'] as String?,
+        arrival: j['arrival'] as String?,
       );
+
+  /// The status as people read it: Out for Delivery changes by itself to Arriving and then Arrived
+  /// (from the rider's place on the map) until the rider marks it Delivered.
+  String get shownStatus => switch (status) {
+        'Out for Delivery' when arrival == 'Arrived' => 'Arrived',
+        'Out for Delivery' when arrival == 'Arriving' => 'Arriving',
+        'Out for Delivery' => 'Out for delivery',
+        'Not Delivered' => 'Not delivered',
+        _ => status,
+      };
 
   /// "Deliver on Thu, Oct 22" or "As soon as possible".
   String get deliveryDateText {

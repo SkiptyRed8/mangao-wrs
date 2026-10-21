@@ -152,11 +152,11 @@ class _StaffOrderDetailsState extends State<StaffOrderDetails> {
         builder: (context, d, reload) {
           final o = Order.fromJson(d['order'] as Map<String, dynamic>);
           return Body([
-            Align(alignment: Alignment.centerLeft, child: Tag(o.status == 'Out for Delivery' ? 'Out for delivery' : o.status)),
+            Align(alignment: Alignment.centerLeft, child: Tag(o.shownStatus)),
             const Gap(10),
             Box(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Label('Order info'),
+                const Label('Order details'),
                 KV('Customer name', o.name.isEmpty ? 'Guest' : o.name),
                 KV('Gallons', '${o.quantity}'),
                 KV('Refill or Package', o.type),

@@ -283,7 +283,7 @@ class _StockItemScreenState extends State<StockItemScreen> {
           ]),
           const Gap(14),
           const Row(children: [
-            Expanded(child: Label('Entries list')),
+            Expanded(child: Label('Stock added and removed')),
             Text('Newest first', style: TextStyle(color: Brand.muted, fontSize: 12)),
           ]),
           if (d.$2.isEmpty) const Empty('No entries yet'),
@@ -410,7 +410,7 @@ class _MovementHistoryScreenState extends State<MovementHistoryScreen> {
           Btn('Filter', _filter, outline: parts.isEmpty),
           if (parts.isNotEmpty) ...[const Gap(8), Note('Filter: ${parts.join(' · ')}')],
           const Gap(8),
-          const Label('Entries list'),
+          const Label('Stock added and removed'),
           if (_error != null) MsgBanner('Could not load', sub: _error),
           if (list == null && _error == null) const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())),
           if (list != null && list.isEmpty) const Empty('No entries for this filter'),

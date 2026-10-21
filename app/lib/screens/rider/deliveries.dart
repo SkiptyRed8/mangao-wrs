@@ -149,6 +149,7 @@ class DeliveryCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           Expanded(child: Text(o.name.isEmpty ? 'Guest' : o.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+          if (o.arrival != null) ...[Tag(o.shownStatus, filled: true), const SizedBox(width: 6)],
           if (paidAlready) Tag(o.payment == 'Paid at station' ? 'Paid at station' : 'Paid'),
         ]),
         const Gap(2),

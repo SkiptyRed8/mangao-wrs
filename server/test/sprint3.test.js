@@ -63,7 +63,11 @@ describe('Live location and live map (step 34)', () => {
     assert.equal(map.body.riders[0].lat, 14.6901);
     assert.deepEqual(map.body.riders[0].orders, [maria.order_id]);
     assert.equal(map.body.orders[0].name, 'Maria Santos');
-    assert.equal((await as(rider, api().get('/api/map'))).status, 403);
+    // The rider sees the map of their own trip.
+    const own = await as(rider, api().get('/api/map'));
+    assert.equal(own.status, 200);
+    assert.deepEqual(own.body.orders.map((o) => o.id), [maria.order_id]);
+    assert.equal(own.body.orders[0].arrival, null);
 
     const mariaToken = await loginAs('09171234567', 'maria123');
     const seen = await as(mariaToken, api().get(`/api/orders/${maria.order_id}`));
@@ -465,6 +469,17 @@ describe('Live map route and demo ride', () => {
     const off = await as(owner, api().put('/api/settings/demo-ride')).send({ on: false });
     assert.equal(off.body.demoRide, false);
     assert.equal((await as(owner, api().put('/api/settings/demo-ride')).send({})).status, 400);
+    const t = await as(owner, api().put('/api/settings/demo-ride')).send({ seconds: 30 });
+    assert.equal(t.status, 200);
+    assert.equal(t.body.demoSeconds, 30);
+    assert.equal(t.body.message, 'Demo trip to each stop: 30 seconds.');
+    assert.equal((await as(owner, api().get('/api/settings'))).body.demoSeconds, 30);
+    for (const bad of [5, 301, 'fast']) {
+      const r = await as(owner, api().put('/api/settings/demo-ride')).send({ seconds: bad });
+      assert.equal(r.status, 400, String(bad));
+      assert.equal(r.body.error.title, 'Trip time not valid');
+    }
+    await as(owner, api().put('/api/settings/demo-ride')).send({ seconds: 60 });
     assert.equal((await as(staff, api().put('/api/settings/demo-ride')).send({ on: true })).status, 403);
   });
 });

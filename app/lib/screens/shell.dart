@@ -57,6 +57,7 @@ class Shell extends StatelessWidget {
       case Role.rider:
         return const [
           TabDef('Deliveries', Icons.local_shipping_outlined, Icons.local_shipping, RiderDeliveries()),
+          TabDef('Live Map', Icons.location_on_outlined, Icons.location_on, LiveMapScreen()),
           TabDef('Done Today', Icons.check_circle_outline, Icons.check_circle, RiderDoneToday()),
           TabDef('My Account', Icons.person_outline, Icons.person, AccountScreen()),
         ];

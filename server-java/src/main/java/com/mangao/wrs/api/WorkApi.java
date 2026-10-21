@@ -220,7 +220,7 @@ public class WorkApi {
         List<Long> ordersOut = new ArrayList<>();
         for (Map<String, Object> o : list) {
           long oid = V.lng(o.get("order_id"));
-          db.update("UPDATE orders SET status = 'Out for Delivery', rider_id = ?, batch_id = ?, out_at = ? WHERE order_id = ?", rider, batch, t, oid);
+          db.update("UPDATE orders SET status = 'Out for Delivery', arrival = NULL, rider_id = ?, batch_id = ?, out_at = ? WHERE order_id = ?", rider, batch, t, oid);
           orders.addHistory(oid, "Out for delivery", uid, "Rider: " + riderLabel, t);
           process.countOrder(o, uid, "Order sent out for delivery", t);
           orders.notifyCustomer(o, "Out for Delivery", "Out for delivery", list.size() > 1 ? "Your rider is handling multiple orders." : "Your rider is on the way.");
