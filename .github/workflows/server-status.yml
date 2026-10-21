@@ -67,3 +67,9 @@ jobs:
           done
           out=$(curl -s -o /tmp/n.json -w "%{http_code} %{time_total}s" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=Commonwealth%20Avenue")
           echo "::notice title=Nominatim direct from GitHub::$out $(head -c 300 /tmp/n.json)"
+          for q in "SM%20Fairview" "Batasan%20Hills" "Riverside%20Commonwealth" "Ever%20Gotesco"; do
+            out=$(curl -s -o /tmp/p.json -w "%{http_code} %{time_total}s" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://photon.komoot.io/api/?q=$q&lat=14.6928&lon=121.0872&limit=4&bbox=120.98,14.58,121.14,14.78")
+            echo "::notice title=Photon $q::$out $(python3 -c "import json;d=json.load(open('/tmp/p.json'));print([ (f['properties'].get('name'),f['properties'].get('street'),f['properties'].get('district'),f['properties'].get('city')) for f in d['features']])" 2>&1 | head -c 400)"
+            out=$(curl -s -o /tmp/n.json -w "%{http_code}" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=$q")
+            echo "::notice title=Nominatim $q::$out $(python3 -c "import json;print([x['display_name'][:60] for x in json.load(open('/tmp/n.json'))])" 2>&1 | head -c 400)"
+          done
