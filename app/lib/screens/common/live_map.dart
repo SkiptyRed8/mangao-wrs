@@ -317,7 +317,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             left: 12,
             right: 12,
             top: 12,
-            child: Note("Waiting for the rider's location. It shows when the rider opens Deliveries with location on."),
+            child: Note("Waiting for the rider's location."),
           ),
         if (_pin != null)
           Positioned(

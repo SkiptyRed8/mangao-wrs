@@ -139,7 +139,6 @@ class AlertPreferencesScreen extends StatefulWidget {
 
 class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
   List<Map<String, dynamic>>? _items;
-  bool _push = false;
   String? _error;
 
   @override
@@ -154,7 +153,6 @@ class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
       if (mounted) {
         setState(() {
           _items = [for (final x in r['items'] as List) Map<String, dynamic>.from(x as Map)];
-          _push = r['push'] == true;
         });
       }
     } catch (e) {
@@ -201,10 +199,6 @@ class _AlertPreferencesScreenState extends State<AlertPreferencesScreen> {
                 ]),
               ),
             ),
-        if (_push) ...[
-          const Gap(6),
-          const Note('Alerts also come to your phone when the app is closed.'),
-        ],
       ]),
     );
   }

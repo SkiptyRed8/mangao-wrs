@@ -65,8 +65,9 @@ class Realtime {
       );
       ws.ready.then((_) {
         _connected = true;
-      }).catchError((_) {
-        // stream onError handles a failed connection
+        print('[mangao-live] connected'); // system log only, for the team
+      }).catchError((Object e) {
+        print('[mangao-live] could not connect: $e'); // stream onError handles a failed connection
       });
       _ping?.cancel();
       _ping = Timer.periodic(const Duration(seconds: 25), (_) {

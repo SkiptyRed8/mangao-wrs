@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../screens/customer/order_details.dart';
 import '../screens/owner/admin_order_details.dart';
+import '../widgets/alert_banner.dart';
 import 'app_state.dart';
 import 'nav.dart';
 
@@ -34,6 +35,11 @@ class PushSetup {
       _ready = true;
       // Tapping a notification opens the order.
       FirebaseMessaging.onMessageOpenedApp.listen(_open);
+      // While the app is open Android does not show the notification itself: show the alert card.
+      FirebaseMessaging.onMessage.listen((m) {
+        final id = int.tryParse('${m.data['orderId'] ?? ''}');
+        showAlertBanner(title: m.notification?.title ?? '', message: m.notification?.body ?? '', orderId: id);
+      });
       final first = await FirebaseMessaging.instance.getInitialMessage();
       if (first != null) Future.delayed(const Duration(seconds: 2), () => _open(first));
     } catch (_) {
