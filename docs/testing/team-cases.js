@@ -115,7 +115,7 @@ module.exports = [
     login: 'Customer, Owner, Staff and Rider as in Parts A to D',
     intro: 'This is the most important part: it shows the live updates between phones. Do not pull down to refresh; the screens should change by themselves within a few seconds.',
     cases: [
-      ['Owner: stay on Orders > New. Customer: place a 2-gallon order.', 'Owner: the order appears by itself; a white alert card "New order" slides in at the top (tap it to open the order) and the bell number goes up. The card shows "Ordered <date>, <time>", "As soon as possible" and "cancels at <time> if not accepted". The bell list shows the date and time of each alert.'],
+      ['Owner (app 1.0.24 or newer, or the web version): stay on Orders > New. Customer: place a 2-gallon order.', 'Owner: the order appears by itself; a white alert card "New order" slides in at the top (tap it to open the order) and the bell number goes up. The card shows "Ordered <date>, <time>", "As soon as possible" and "cancels at <time> if not accepted". The bell list shows the date and time of each alert.'],
       ['Owner phone (Android app, Firebase set up): close the app. Customer: place another order.', 'The owner phone shows "New order" in the notification bar (with the order date and time). Tapping it opens the order.'],
       ['Customer: place an order with Delivery date > Choose a date > tomorrow.', 'Owner New card: "Deliver on <day>". After Accept, the customer sees "Estimated Delivery: <date>, 7:30 AM to 6:00 PM".'],
       ['Customer: open the order and wait. Owner: Accept it with rider Juan Dela Cruz.', 'Customer: the screen jumps to Processing with the delivery time and an "Order accepted" banner. Staff: it appears in To Do > Processing by itself.'],
