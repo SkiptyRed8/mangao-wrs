@@ -45,10 +45,12 @@ jobs:
 
       - name: Build the web app
         working-directory: app
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           flutter create --platforms=web --org com.mangao --project-name mangao_wrs . > /dev/null
           flutter pub get
-          flutter build web --release --dart-define=API_URL=http://localhost:3100
+          flutter build web --release --dart-define=API_URL=http://localhost:3100 --dart-define=APP_VERSION="$(gh release view app-latest --json name -q .name | grep -o '[0-9.]*$')"
           nohup python3 -m http.server 5100 -d build/web > /dev/null 2>&1 &
 
       - name: Take screenshots

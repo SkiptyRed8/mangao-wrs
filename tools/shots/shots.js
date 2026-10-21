@@ -10,6 +10,9 @@ fs.mkdirSync(OUT, { recursive: true });
 const log = [];
 const say = (...a) => { const s = a.join(' '); console.log(s); log.push(s); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Android phone size (720 x 1600 pixels, like a Samsung A-series): 360 x 800 dp, minus the status bar
+// (34 dp) and the navigation bar (48 dp) that frame.py draws around each picture afterwards.
+const W = 360, H = 718;
 
 async function api(method, path, body, token) {
   const r = await fetch(API + path, {
@@ -49,7 +52,7 @@ async function seed() {
 }
 
 async function open(browser, session) {
-  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     geolocation: { latitude: 14.6952, longitude: 121.088 }, permissions: ['geolocation'] });
   if (session) {
     await ctx.addInitScript(([t, u]) => {
@@ -68,7 +71,7 @@ async function open(browser, session) {
 
 async function shot(page, name, wait = 1500) {
   // Move the pointer off the tab bar so no tooltip stays on the picture.
-  await page.mouse.move(206, 330);
+  await page.mouse.move(W / 2, 330);
   await sleep(wait + 1500);
   await page.screenshot({ path: `${OUT}/${name}.png` });
   say('shot', name);
@@ -93,7 +96,7 @@ async function tap(page, text) {
 
 // Bottom tab by position (works without semantics).
 async function tab(page, i, n) {
-  await page.mouse.click(Math.round(((i + 0.5) * 412) / n), 915 - 40);
+  await page.mouse.click(Math.round(((i + 0.5) * W) / n), H - 40);
   await sleep(1800);
 }
 
@@ -168,7 +171,9 @@ async function tab(page, i, n) {
   // Rider
   ({ ctx, page } = await open(browser, s.rider));
   await shot(page, '50-rider-deliveries');
-  await tab(page, 1, 3);
+  await tab(page, 1, 4);
+  await shot(page, '52-rider-live-map', 6000);
+  await tab(page, 2, 4);
   await shot(page, '51-rider-done-today');
   await ctx.close();
 
