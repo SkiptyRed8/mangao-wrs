@@ -57,3 +57,13 @@ jobs:
             echo "::notice title=login as $ua::$out $(head -c 60 /tmp/d.txt)"
           done
 
+      - name: Map services (through the server)
+        run: |
+          URL=$(tr -d ' \r\n' < deploy/server-url.txt)
+          tok=$(curl -s --max-time 90 -H "Content-Type: application/json" -d '{"phone":"09170000002","password":"staff123"}' "$URL/api/auth/login" | python3 -c "import json,sys;print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
+          for p in "/api/geo/search?q=Commonwealth%20Avenue" "/api/geo/search?q=Riverside%20Street" "/api/geo/search?q=SM%20Fairview" "/api/geo/reverse?lat=14.692823&lng=121.0871699" "/api/geo/route?from=14.692823,121.0871699&to=14.70,121.09"; do
+            out=$(curl -s -o /tmp/g.json -w "%{http_code} %{time_total}s" --max-time 60 -H "Authorization: Bearer $tok" "$URL$p" || echo "no answer")
+            echo "::notice title=$p::$out $(head -c 300 /tmp/g.json)"
+          done
+          out=$(curl -s -o /tmp/n.json -w "%{http_code} %{time_total}s" --max-time 30 -A "MangaoWRS/1.0 (school project, Quezon City)" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=ph&bounded=1&viewbox=120.98,14.78,121.14,14.58&q=Commonwealth%20Avenue")
+          echo "::notice title=Nominatim direct from GitHub::$out $(head -c 300 /tmp/n.json)"
