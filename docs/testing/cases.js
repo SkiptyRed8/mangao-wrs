@@ -665,6 +665,8 @@ module.exports = [
       ['Android app: open after installing the new APK and log in.', 'Android asks "Allow Mangao WRS to send you notifications?"; tap Allow.'],
       ['Owner: close the app. Customer: place an order.', 'Owner phone: "New order" in the notification bar with "ordered <date>, <time>"; tap it: the order opens.'],
       ['Customer: close the app. Owner: accept the order.', 'Customer phone: "Order accepted" in the notification bar.'],
+      ['Owner: keep the app open on any screen. Customer: place an order.', 'A white alert card "New order" slides in at the top with the time; tap it: the order opens; it closes by itself after 6 seconds (or swipe it up / X). It shows once, not twice. Same in the web version.'],
+      ['More > Notifications > Preferences.', 'Only the alert switches; no note about phones or the app being closed.'],
       ['Owner: Orders > New.', 'Each card shows "Ordered <date>, <time>", the delivery date ("As soon as possible" or "Deliver on <day>") and "cancels at <time> if not accepted".'],
       ['Owner: the bell (notifications).', 'Every alert shows the date and the time (e.g. "Today, 9:20 PM", "Oct 18, 2:05 PM").'],
       ['Customer: Order Now > Delivery date > Choose a date.', 'Only tomorrow up to 7 days ahead can be picked; the note says 7:30 AM to 6:00 PM; Confirm order shows the delivery date.'],
