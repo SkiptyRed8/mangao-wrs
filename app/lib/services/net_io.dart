@@ -126,7 +126,8 @@ HttpClient _httpClient() {
     ..findProxy = (_) => 'DIRECT';
   c.connectionFactory = (Uri uri, String? proxyHost, int? proxyPort) async {
     final secure = uri.scheme == 'https' || uri.scheme == 'wss';
-    final port = uri.hasPort ? uri.port : (secure ? 443 : 80);
+    // A live-update address (wss://) arrives here as https with port 0: use the normal port then.
+    final port = uri.hasPort && uri.port != 0 ? uri.port : (secure ? 443 : 80);
     return ConnectionTask.fromSocket(_open(uri.host, port, secure), () {});
   };
   return c;
