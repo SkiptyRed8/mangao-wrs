@@ -651,6 +651,8 @@ module.exports = [
       ['Wait 5 minutes, then tap Download again.', 'A new file is made and downloads (no "Link expired" page).'],
       ['Turn off the internet for 10 seconds, then on.', 'The app shows a message instead of crashing; live updates come back by themselves.'],
       ['After Claude changes the app: download the new APK from the same link and install.', 'It installs over the old app (no uninstall); still logged in; the release title shows the new version number.'],
+      ['GitHub > Actions > Android test (runs by itself after each app build).', 'Both runs (normal, broken-dns) green; the android-test release has the screenshots: Welcome, Log in, and the staff To Do screen after log in.'],
+      ['Install 1.0.22 or newer, log in, close the app fully, open it again.', 'It opens straight to Home, still logged in (saving on the phone works).'],
     ],
   },
   {
