@@ -174,12 +174,14 @@ class _OrderBoardState extends State<OrderBoard> {
           const Gap(8),
           Row(children: [
             Expanded(
+              flex: 6, // a little wider so "Live Map" stays on one line on small phones
               child: Btn('Live Map', () => go(context, const LiveMapScreen(pushed: true)),
                   outline: true, small: true),
             ),
             const Gap(8),
             if (_view == 'new' || _view == 'processing') ...[
               Expanded(
+                flex: 5,
                 child: Btn(_select ? 'Done' : 'Select', () => setState(() {
                       _select = !_select;
                       _picked.clear();
@@ -187,7 +189,7 @@ class _OrderBoardState extends State<OrderBoard> {
               ),
               const Gap(8),
             ],
-            Expanded(child: Btn('Filter', _filter, outline: filterName.isEmpty, small: true)),
+            Expanded(flex: 5, child: Btn('Filter', _filter, outline: filterName.isEmpty, small: true)),
           ]),
           if (filterName.isNotEmpty) ...[
             const Gap(10),

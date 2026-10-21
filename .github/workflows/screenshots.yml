@@ -61,13 +61,20 @@ jobs:
           npx playwright install --with-deps chromium > /dev/null
           TZ=Asia/Manila node shots.js
 
+      - name: Android phone frame (status bar and navigation bar)
+        working-directory: tools/shots
+        run: |
+          sudo apt-get install -y -q fonts-inter > /dev/null || true
+          python3 -m pip install -q pillow || true
+          python3 frame.py out out/android ../../app/assets/images/logo.png
+
       - name: Publish
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp server.log tools/shots/out/ 2>/dev/null || true
-          cd tools/shots/out && zip -q ../screenshots.zip * && cd ..
+          cd tools/shots/out && zip -q -r ../screenshots.zip . && cd ..
           gh release delete screenshots --yes --cleanup-tag 2>/dev/null || true
           gh release create screenshots screenshots.zip --title "App screenshots for the documentation" \
             --notes "Phone-size screenshots of the main screens (demo data), commit ${GITHUB_SHA::7}." --prerelease --latest=false --target "$GITHUB_SHA"
