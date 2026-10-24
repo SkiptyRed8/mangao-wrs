@@ -1,7 +1,6 @@
-"""Puts an Android phone frame around each app screenshot, so the documentation pictures look like
-screenshots taken on the station's Android phone (720 x 1600 pixels): the status bar on top (time,
-notification icons, sound off, Wi-Fi, signal, battery) and the navigation bar at the bottom
-(Recent apps, Home, Back).
+"""Puts the Android status bar on top of each app screenshot, so the documentation pictures look like
+screenshots taken on the station's Android phone (720 pixels wide): time, notification icons,
+sound off, Wi-Fi, signal and battery. No navigation bar at the bottom (the app does not show one).
 
 usage: python3 frame.py <folder with the 720 x 1436 screenshots> <output folder> [logo.png]
 The screenshots come from shots.js (360 x 718 dp at 2x)."""
@@ -10,12 +9,10 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-W, STATUS, NAV = 720, 68, 96
+W, STATUS = 720, 68
 S = 4  # draw 4x larger, then shrink (smooth edges)
 GREY = (74, 74, 74)
 LIGHT = (176, 176, 176)
-NAV_BG = (244, 244, 244)
-NAV_ICON = (96, 96, 96)
 FONT_BOLD = '/usr/share/fonts/opentype/inter/Inter-SemiBold.otf'
 FONT_NUM = '/usr/share/fonts/opentype/inter/Inter-Bold.otf'
 
@@ -105,30 +102,13 @@ def status_bar(clock, logo):
     return img.resize((W, STATUS), Image.LANCZOS)
 
 
-def nav_bar():
-    img = Image.new('RGB', (W * S, NAV * S), NAV_BG)
-    d = ImageDraw.Draw(img)
-    y = 46 * S
-    lw = int(2.6 * S)
-    # Recent apps |||
-    for i in range(3):
-        xx = (149 + i * 12) * S
-        d.line([(xx, y - 13 * S), (xx, y + 13 * S)], fill=NAV_ICON, width=lw)
-    # Home: rounded square
-    d.rounded_rectangle((349 * S, y - 13 * S, 377 * S, y + 14 * S), radius=8 * S, outline=NAV_ICON, width=lw)
-    # Back <
-    d.line([(574 * S, y - 15 * S), (559 * S, y), (574 * S, y + 15 * S)], fill=NAV_ICON, width=lw, joint='curve')
-    return img.resize((W, NAV), Image.LANCZOS)
-
-
 def frame(src, dst, clock, logo):
     shot = Image.open(src).convert('RGB')
     if shot.size != (W, 1436):
         shot = shot.resize((W, int(shot.height * W / shot.width)), Image.LANCZOS).crop((0, 0, W, 1436))
-    out = Image.new('RGB', (W, STATUS + 1436 + NAV), 'white')
+    out = Image.new('RGB', (W, STATUS + 1436), 'white')
     out.paste(status_bar(clock, logo), (0, 0))
     out.paste(shot, (0, STATUS))
-    out.paste(nav_bar(), (0, STATUS + 1436))
     out.save(dst)
 
 
