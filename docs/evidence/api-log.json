@@ -1,0 +1,228 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/health",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 355,
+      "contentType": "application/json",
+      "body": {
+        "ok": true,
+        "app": "mangao-system",
+        "server": "java",
+        "time": "2026-10-26T16:20:39.108Z",
+        "database": "ok",
+        "users": 11
+      }
+    },
+    "at": "2026-10-27 00:20:39"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/health",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 309,
+      "contentType": "application/json",
+      "body": {
+        "ok": true,
+        "app": "mangao-system",
+        "server": "java",
+        "time": "2026-10-26T16:20:39.433Z",
+        "database": "ok",
+        "users": 11
+      }
+    },
+    "at": "2026-10-27 00:20:39"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/api/settings/prices",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 307,
+      "contentType": "application/json",
+      "body": {
+        "prices": {
+          "walkIn": 30,
+          "delivery": 35,
+          "package": 150
+        },
+        "stationPhone": "09170000001"
+      }
+    },
+    "at": "2026-10-27 00:20:39"
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://mangao-wrs.onrender.com/api/auth/login",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "phone": "09170000002",
+        "password": "********"
+      }
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 768,
+      "contentType": "application/json",
+      "body": {
+        "token": "eyJhbGciOiJI...(hidden)",
+        "user": {
+          "id": 2,
+          "name": "Joy Ramos",
+          "phone": "09170000002",
+          "email": "joy.staff@example.com",
+          "role": "Staff",
+          "active": true
+        }
+      }
+    },
+    "at": "2026-10-27 00:20:40"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/api/auth/me",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJI...(hidden)"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 283,
+      "contentType": "application/json",
+      "body": {
+        "user": {
+          "id": 2,
+          "name": "Joy Ramos",
+          "phone": "09170000002",
+          "email": "joy.staff@example.com",
+          "role": "Staff",
+          "active": true
+        }
+      }
+    },
+    "at": "2026-10-27 00:20:40"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/api/work/tank",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJI...(hidden)"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 309,
+      "contentType": "application/json",
+      "body": {
+        "count": 5,
+        "limit": 60,
+        "alert": false
+      }
+    },
+    "at": "2026-10-27 00:20:41"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/api/work/todo",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJI...(hidden)"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 326,
+      "contentType": "application/json",
+      "body": {
+        "tank": {
+          "count": 5,
+          "limit": 60,
+          "alert": false
+        },
+        "processing": [],
+        "owner": false
+      }
+    },
+    "at": "2026-10-27 00:20:41"
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://mangao-wrs.onrender.com/api/work/done-today",
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJI...(hidden)"
+      },
+      "body": null
+    },
+    "response": {
+      "status": 200,
+      "timeMs": 292,
+      "contentType": "application/json",
+      "body": {
+        "gallons": 0,
+        "items": []
+      }
+    },
+    "at": "2026-10-27 00:20:41"
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://mangao-wrs.onrender.com/api/auth/login",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "phone": "09170000002",
+        "password": "********"
+      }
+    },
+    "response": {
+      "status": 401,
+      "timeMs": 1201,
+      "contentType": "application/json",
+      "body": {
+        "error": {
+          "code": "DETAILS_WRONG",
+          "title": "Details wrong",
+          "message": "Check your phone number and password"
+        }
+      }
+    },
+    "at": "2026-10-27 00:20:43"
+  }
+]
