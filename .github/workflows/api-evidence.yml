@@ -1,0 +1,72 @@
+# Calls the online server's API the same way the app does and keeps every request and JSON
+# response as a log (Actions > API evidence > api-log). Read-only: it only reads data and logs in
+# with the demo staff account; the login token is hidden in the log.
+name: API evidence
+
+on:
+  workflow_dispatch:
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: deploy
+      - name: Call the live API
+        run: |
+          URL=$(tr -d ' \r\n' < deploy/server-url.txt)
+          mkdir -p out
+          python3 - "$URL" <<'PY'
+          import json, sys, time, urllib.request, urllib.error, datetime
+          base = sys.argv[1]
+          log, calls = [], []
+          token = None
+          def call(method, path, body=None, auth=False):
+              global token
+              headers = {'Accept': 'application/json'}
+              data = None
+              if body is not None:
+                  headers['Content-Type'] = 'application/json'
+                  data = json.dumps(body).encode()
+              if auth and token:
+                  headers['Authorization'] = 'Bearer ' + token
+              req = urllib.request.Request(base + path, data=data, method=method, headers=headers)
+              t0 = time.time()
+              try:
+                  with urllib.request.urlopen(req, timeout=120) as r:
+                      status, raw, ctype = r.status, r.read().decode(), r.headers.get('Content-Type', '')
+              except urllib.error.HTTPError as e:
+                  status, raw, ctype = e.code, e.read().decode(), e.headers.get('Content-Type', '')
+              ms = int((time.time() - t0) * 1000)
+              try:
+                  resp = json.loads(raw)
+              except Exception:
+                  resp = raw[:500]
+              if isinstance(resp, dict) and 'token' in resp:
+                  token = resp['token']
+                  resp = dict(resp, token=resp['token'][:12] + '...(hidden)')
+              shown_headers = {k: (v[:19] + '...(hidden)' if k == 'Authorization' else v) for k, v in headers.items()}
+              if isinstance(body, dict) and 'password' in body:
+                  body = dict(body, password='********')
+              entry = {'request': {'method': method, 'url': base + path, 'headers': shown_headers, 'body': body},
+                       'response': {'status': status, 'timeMs': ms, 'contentType': ctype, 'body': resp},
+                       'at': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')}
+              calls.append(entry)
+              print(f"\n{method} {base + path}  ->  HTTP {status}  ({ms} ms)")
+              print(json.dumps(resp, indent=2, ensure_ascii=False)[:3000])
+          call('GET', '/health')
+          call('GET', '/health')
+          call('GET', '/api/settings/prices')
+          call('POST', '/api/auth/login', {'phone': '09170000002', 'password': 'staff123'})
+          call('GET', '/api/auth/me', auth=True)
+          call('GET', '/api/work/tank', auth=True)
+          call('GET', '/api/work/todo', auth=True)
+          call('GET', '/api/work/done-today', auth=True)
+          call('POST', '/api/auth/login', {'phone': '09170000002', 'password': 'wrong-password'})
+          json.dump(calls, open('out/api-log.json', 'w'), indent=2, ensure_ascii=False)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-log
+          path: out/
