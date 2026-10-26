@@ -6,6 +6,9 @@ name: API evidence
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   log:
     runs-on: ubuntu-latest
@@ -70,3 +73,12 @@ jobs:
         with:
           name: api-log
           path: out/
+      - name: Keep the log on the evidence branch (docs/evidence/api-log.json)
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git fetch origin evidence || true
+          git switch evidence 2>/dev/null || git switch --orphan evidence
+          mkdir -p docs/evidence && cp out/api-log.json docs/evidence/api-log.json
+          git add docs/evidence/api-log.json
+          git commit -m "API evidence log $(date -u +%Y-%m-%dT%H:%MZ)" && git push origin evidence
