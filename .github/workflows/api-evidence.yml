@@ -77,8 +77,13 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git fetch origin evidence || true
-          git switch evidence 2>/dev/null || git switch --orphan evidence
-          mkdir -p docs/evidence && cp out/api-log.json docs/evidence/api-log.json
+          cp out/api-log.json /tmp/api-log.json
+          git sparse-checkout disable
+          if git ls-remote --exit-code --heads origin evidence; then
+            git fetch origin evidence && git switch -c evidence --track origin/evidence
+          else
+            git switch --orphan evidence
+          fi
+          mkdir -p docs/evidence && cp /tmp/api-log.json docs/evidence/api-log.json
           git add docs/evidence/api-log.json
           git commit -m "API evidence log $(date -u +%Y-%m-%dT%H:%MZ)" && git push origin evidence
